@@ -15,7 +15,7 @@ Everything since the first build sits on PR #1 (`town-map-and-chase`), not yet m
 
 | System | MVP scope | Status | What's there, and what's missing |
 | --- | --- | --- | --- |
-| World | Original town blockout and core locations | Testing | Blueprint graybox, about 500 m: 21 houses (7/7/7) and the cemetery, the hub, the dealer, the mechanic, the market, the Community District, 7 lots, a T-junction road network, signs and props. **Missing:** Toolbox art |
+| World | Original town blockout and core locations | Testing | Blueprint graybox, about 500 m: 21 houses (7/7/7) and the cemetery, the hub, the dealer, the mechanic, the market, the Community District, 7 lots, a T-junction road network, signs and props. Toolbox art for the sari-sari, small and medium houses (bahay kubo), market stalls, palms and trees. **Missing:** art for the other roles (below) |
 | Orders | Food and parcel orders | Testing | Food and parcel, plus Fragile, Rush and Bulky; a per-player board of 3 offers lasting 30 s, with difficulty stars |
 | Delivery | Accept, carry, timer, gate parking, door validation, payment | Testing | All of it on the server, plus gates that open only for the right order, a visible carried package and the conveyor |
 | Chasers | Dog sizes and a limited set of breeds | Testing | 5 sizes, 13 breeds (with the cat and the goose), alert-bark-chase, bites, knockback, stun |
@@ -31,8 +31,7 @@ Everything since the first build sits on PR #1 (`town-map-and-chase`), not yet m
 Beyond the MVP but in the existing design, not started:
 - night jobs (shady packages and police);
 - the White Lady;
-- citizens and road traffic;
-- audio.
+- citizens and road traffic.
 
 ## MVP acceptance criteria (GDD §14.3)
 
@@ -57,7 +56,7 @@ Beyond the MVP but in the existing design, not started:
 | 2. Technical foundation and architecture | Testing | Rojo and Rokit, remotes, ProfileStore, shared rules with 60 unit tests, the Blueprint §15 hierarchy |
 | 3. Core gameplay | Testing | The delivery loop, chasers, the map, gates, the conveyor, carried packages |
 | 4. Progression and economy | In Progress | Rides, parts, homes, shops, sprint, daily goals, streaks, regulars. **Next:** paint and decor, and the economy check |
-| 5. World building and content | In Progress | The Blueprint graybox is complete. **Next:** Toolbox art and audio (needs the Studio tools) |
+| 5. World building and content | In Progress | The Blueprint graybox is complete. The soundscape is in, and the first Toolbox art (6 roles). **Next:** the remaining art roles |
 | 6. Events and live-service systems | In Progress | The launch-foundation events (§10.1) are running. Seasonal calendar events (§10.3) come later |
 | 7. Endgame and long-term retention | Not Started | Collections, prestige and franchise wait until the base progression has been tested (GDD §12.3) |
 | 8. Testing, balancing and optimization | Not Started | |
@@ -74,13 +73,16 @@ This follows GDD §15 and Gregory's priority: gameplay first, polish after.
    - the conveyor and the carried package;
    - the shops;
    - rain grip.
-2. **Art and audio pass, in a session with the Studio tools.**
-   - Toolbox models for the `art()` roles: `Warehouse`, `SariSari`, `Stall`, `House_*`,
-     `Home_1..5`, `Tree`/`Palm`/`Shrub`, `WaitingShed`, `Bench`, `Bin`, `Dog_<breed>`,
-     `Ride_<key>`, `Barangay`.
-   - Licensed Creator Store sounds: barks, the conveyor, rain, crickets, a fiesta tune, the
-     pay chime.
-   - Credit every one in `CREDITS.md`, and back up the place.
+2. **Finish the art pass** (sound and 6 art roles done 2026-11-07, see `CREDITS.md`).
+   - Gregory: listen to the sounds and tune the volumes in `Data/Sounds.luau`; replace the three
+     public-upload animal calls if a licensed one turns up.
+   - Roles still graybox: `House_large` (the bahay na bato in the series are whole compounds, too
+     big), `Home_1..5`, `Warehouse`, `Dealer`, `Mechanic`, `Barangay`, `Tower`, `Shrub`,
+     `WaitingShed`, `Bench`, `Bin`. `Dog_<breed>` and `Ride_<key>` need rigs with the parts the
+     animation moves (`Leg`, `Tail`, `Head`), so they stay graybox.
+   - Toolbox houses have no `Door` part and no `Window` tags, so they skip the door animation and
+     the lit windows at night. Every stall shares one canopy colour.
+   - Save the place and back it up to the vault.
 3. **The Intro** (closes the MVP UI): name, skin and clothes, the `Intro` remote, the name
    filtered by TextService.
 4. **Paint and decor** (GDD §6.3): house paint, ride paint, a flower bed, a Philippine flag.
@@ -149,6 +151,6 @@ The roads meet only at T-junctions (§5.2), and corridors run north, south and s
 | Encounter geography | Built: yards, alert-then-chase. The White Lady (§9.3) is next |
 | Environmental behaviour | Built: day and night, staggered lamps and windows, brownout, rain visibility and grip, fiesta, Undas |
 | Animation (§13) | Built: dogs, gates, doors, the conveyor, package handling, lights, riding poses. Wind on trees and flags is not built |
-| Audio direction (§12) | Not started (needs the Studio tools) |
-| Asset kit (§10) | Graybox with `art()` hooks. Toolbox pass not started |
+| Audio direction (§12) | Built: beds by district and time (birds, rural, crickets, rain and thunder), placed street walla, conveyor, cemetery wind, fiesta music, barks from the dog, the till on pay. Needs a listen |
+| Asset kit (§10) | Toolbox art for 6 roles (sari-sari, bahay kubo small and medium, stalls, palm, tree). The rest graybox |
 | World blockout validation (§16) | Layout tests pass. Needs a playtest |

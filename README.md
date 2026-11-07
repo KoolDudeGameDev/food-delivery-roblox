@@ -30,8 +30,10 @@ The design lives in [`design/`](design/):
 the first delivery loop, yard dogs that chase and bite, a minimap with a full town map, and
 rides. Take an order at the board, follow the beam and the map pin, get past the dog, and reach
 the door before the timer runs out. Spend your pay at the dealer, the mechanic and your home.
-Your ride parks itself at the gate, so the last stretch is always on foot. World events, goals
-and cosmetics come next.
+Your ride parks itself at the gate, so the last stretch is always on foot. The town has a
+day and night cycle, rain, brownouts, fiestas and Undas, daily goals, a soundscape, and the
+first Toolbox art. The intro screen, paint and decor, and night content come next. See
+[`design/MVP-Tracker.md`](design/MVP-Tracker.md).
 
 ## Building it
 
