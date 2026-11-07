@@ -74,8 +74,6 @@ function View:draw()
 		local color = if r.dirt then hex("c9a878") else hex("5a5f6a")
 		rectFrame(canvas, r.x - r.w / 2, r.z - r.d / 2, r.x + r.w / 2, r.z + r.d / 2, ppm, color, 2)
 	end
-	local plaza = rectFrame(canvas, -15, -15, 15, 15, ppm, hex("cfd3da"), 3)
-	Ui.corner(1000).Parent = plaza
 	for _, h in WorldLayout.HOUSES do
 		local y = h.yard
 		local color = if h.id == "cemetery" then hex("8fa08a") else h.color:Lerp(Color3.new(1, 1, 1), 0.45)
@@ -84,7 +82,9 @@ function View:draw()
 	for _, p in WorldLayout.footprints() do
 		if p.kind == "lot" then
 			rectFrame(canvas, p.x0, p.z0, p.x1, p.z1, ppm, hex("b9a27a"), 3)
-		elseif p.kind == "building" or p.kind == "stall" or p.kind == "hub" and p.name ~= "Plaza" then
+		elseif p.kind == "hub" then
+			rectFrame(canvas, p.x0, p.z0, p.x1, p.z1, ppm, hex("cfd3da"), 3)
+		elseif p.kind == "building" or p.kind == "stall" then
 			rectFrame(canvas, p.x0, p.z0, p.x1, p.z1, ppm, hex("9aa0aa"), 4)
 		elseif p.name == "Pond" then
 			rectFrame(canvas, p.x0, p.z0, p.x1, p.z1, ppm, hex("3f97d6"), 4)
@@ -115,9 +115,13 @@ function View:update(meX: number, meZ: number, heading: number, pins: { Pin })
 	local size = self.holder.AbsoluteSize
 	local span = 2 * EDGE * self.ppm
 	if self.follow then
-		self.canvas.Position = UDim2.fromOffset(size.X / 2 - (meX + EDGE) * self.ppm, size.Y / 2 - (meZ + EDGE) * self.ppm)
+		-- Whole pixels, so the map's edges don't shimmer as you move
+		self.canvas.Position = UDim2.fromOffset(
+			math.round(size.X / 2 - (meX + EDGE) * self.ppm),
+			math.round(size.Y / 2 - (meZ + EDGE) * self.ppm)
+		)
 	else
-		self.canvas.Position = UDim2.fromOffset((size.X - span) / 2, (size.Y - span) / 2)
+		self.canvas.Position = UDim2.fromOffset(math.round((size.X - span) / 2), math.round((size.Y - span) / 2))
 	end
 	local seen = {}
 	for _, pin in pins do
@@ -142,7 +146,7 @@ function View:update(meX: number, meZ: number, heading: number, pins: { Pin })
 			-- Off the minimap: held at its edge, so you can still see which way to go
 			at = Vector2.new(math.clamp(at.X, 11, size.X - 11), math.clamp(at.Y, 11, size.Y - 11))
 		end
-		label.Position = UDim2.fromOffset(at.X, at.Y)
+		label.Position = UDim2.fromOffset(math.round(at.X), math.round(at.Y))
 	end
 	for key, label in self.pins do
 		if not seen[key] then

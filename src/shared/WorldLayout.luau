@@ -56,8 +56,11 @@ WorldLayout.EXPANSION = {
 	{ id = "south", x = 0, z = EDGE - 4, label = "FUTURE DISTRICT" },
 }
 
-WorldLayout.HUB = { x = 0, z = 3 } -- the order board
-WorldLayout.WAREHOUSE = { x = 0, z = -10, w = 22, d = 10 }
+-- The warehouse hub sits in its own paved yard in the north-east block of the crossroads, so
+-- both spokes run straight through the middle of town (Blueprint §17, question 1: offset).
+WorldLayout.HUB_YARD = { x = 18, z = -18, w = 24, d = 24 }
+WorldLayout.HUB = { x = 18, z = -11 } -- the order board, at the front of the yard
+WorldLayout.WAREHOUSE = { x = 18, z = -24, w = 22, d = 10 } -- open to the south
 WorldLayout.SHOPS = {
 	dealer = { x = -19, z = 19, label = "DEALER", color = Color3.fromHex("3f7fd6") },
 	mechanic = { x = 19, z = 19, label = "MECHANIC", color = Color3.fromHex("6a6f78") },
@@ -278,9 +281,10 @@ function WorldLayout.footprints(): { Footprint }
 		table.insert(list, rect(key, "building", "LogisticsDistrict", s.x, s.z, 15, 10))
 	end
 	local w = WorldLayout.WAREHOUSE
-	-- The hub sits on the crossroads by design, so "hub" pieces are exempt from the road check
-	table.insert(list, rect("Warehouse", "hub", "LogisticsDistrict", w.x, w.z, w.w, w.d))
-	table.insert(list, rect("Plaza", "hub", "LogisticsDistrict", 0, 0, 30, 30))
+	table.insert(list, rect("Warehouse", "building", "LogisticsDistrict", w.x, w.z, w.w, w.d))
+	-- The paved hub yard holds the warehouse, so it's the one footprint others may sit inside
+	local y = WorldLayout.HUB_YARD
+	table.insert(list, rect("HubYard", "hub", "LogisticsDistrict", y.x, y.z, y.w, y.d))
 	table.insert(list, rect("Court", "ground", "CommunityDistrict", WorldLayout.COURT.x, WorldLayout.COURT.z, 24, 14))
 	table.insert(list, rect("Pond", "ground", "CommunityDistrict", WorldLayout.POND.x, WorldLayout.POND.z, 26, 18))
 	table.insert(list, rect("Pickleball", "ground", "CommunityDistrict", WorldLayout.PICKLEBALL.x, WorldLayout.PICKLEBALL.z, 14, 26))

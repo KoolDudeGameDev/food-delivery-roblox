@@ -56,11 +56,17 @@ return {
 	nothingSitsOnARoadOrSidewalk = function()
 		local L = load()
 		for _, p in L.footprints() do
-			if p.kind ~= "hub" then
-				for _, r in L.ROADS do
-					assert(not overlaps(p, roadRect(r), SIDEWALK), `{p.name} is on {r.name}`)
-				end
+			for _, r in L.ROADS do
+				assert(not overlaps(p, roadRect(r), SIDEWALK), `{p.name} is on {r.name}`)
 			end
+		end
+	end,
+	theCrossroadsAreClear = function()
+		local L = load()
+		local hub = L.HUB
+		assert(not L.onRoad(hub.x, hub.z, 0), "the order board is on a road")
+		for _, p in L.footprints() do
+			assert(not (p.x0 < 6 and p.x1 > -6 and p.z0 < 6 and p.z1 > -6), `{p.name} blocks the crossroads`)
 		end
 	end,
 	everyDoorstepIsInsideItsYard = function()

@@ -90,9 +90,25 @@ local function yawFacing(dx: number, dz: number): number
 	return math.atan2(dx, dz) -- turns +z to point along (dx, dz)
 end
 
+-- Flat ground pieces stack in layers a clear 0.25 studs apart (tops, in studs), and pieces that
+-- overlap are untextured, so nothing flickers as the camera moves.
+local LAYER = { base = 0.25, detail = 0.5, sidewalk = 0.75, road = 1.0 }
+
+local function flat(parent: Instance, name: string, w: number, d: number, color: Color3, x: number, z: number, top: number, material: Enum.Material?): Part
+	local p = block(parent, name, w, 0.1, d, color, x, 0, z, material)
+	p.Size = Vector3.new(w * S, 0.2, d * S)
+	p.Position = Vector3.new(x * S, top - 0.1, z * S)
+	return p
+end
+
 local function buildGround()
 	local edge = WorldLayout.EDGE
-	block(world, "Ground", edge * 2 + 40, 1, edge * 2 + 40, hex("6fc46a"), 0, -0.5, 0, Enum.Material.Grass)
+	-- Terrain grass, not one huge textured part: it shades and tiles cleanly at a distance
+	local terrain = workspace.Terrain
+	terrain:Clear()
+	terrain:SetMaterialColor(Enum.Material.Grass, hex("6fc46a"))
+	local size = (edge * 2 + 40) * S
+	terrain:FillBlock(CFrame.new(0, -2, 0), Vector3.new(size, 4, size), Enum.Material.Grass)
 	-- A hedge round the map
 	for _, s in { -1, 1 } do
 		block(world, "Hedge", edge * 2 + 4, 4, 2, hex("3e8c4a"), 0, 2, s * (edge + 1), Enum.Material.Grass)
@@ -103,13 +119,12 @@ end
 local function buildRoads()
 	local roads = folder("Roads", world)
 	for _, r in WorldLayout.ROADS do
-		-- East-west roads sit a touch lower, so crossings don't flicker
-		local top = if r.w > r.d then 0.085 else 0.09
+		-- Every road of a kind shares one height and colour, so crossings are seamless
 		if r.dirt then
-			block(roads, r.name, r.w, 0.03, r.d, hex("c9a878"), r.x, top - 0.035, r.z, Enum.Material.Ground)
+			flat(roads, r.name, r.w, r.d, hex("c9a878"), r.x, r.z, LAYER.detail)
 		else
-			block(roads, `{r.name}Sidewalk`, r.w + 3, 0.06, r.d + 3, hex("bfc3c9"), r.x, 0.03, r.z, Enum.Material.Concrete)
-			block(roads, r.name, r.w, 0.03, r.d, hex("4a4f57"), r.x, top - 0.015, r.z, Enum.Material.Asphalt)
+			flat(roads, `{r.name}Sidewalk`, r.w + 3, r.d + 3, hex("bfc3c9"), r.x, r.z, LAYER.sidewalk)
+			flat(roads, r.name, r.w, r.d, hex("4a4f57"), r.x, r.z, LAYER.road)
 		end
 	end
 	-- The reserved corridors end in a barrier until their districts are built (Blueprint §14)
@@ -125,23 +140,23 @@ end
 local function buildHub()
 	local logistics = world.LogisticsDistrict
 	local hub = WorldLayout.HUB
-	local plaza = block(logistics, "Plaza", 0.1, 30, 30, hex("cfd3da"), 0, 0.12, 0, Enum.Material.Concrete)
-	plaza.Shape = Enum.PartType.Cylinder
-	plaza.CFrame = CFrame.new(plaza.Position) * CFrame.Angles(0, 0, math.rad(90))
+	local yard = WorldLayout.HUB_YARD
+	flat(logistics, "HubYard", yard.w, yard.d, hex("cfd3da"), yard.x, yard.z, LAYER.base)
 
-	-- The warehouse, open at the front, with the counter and the ORDERS sign
+	-- The warehouse, open at the front (south), with the counter and the ORDERS sign
 	local warehouse = folder("Warehouse", logistics)
-	if not art("Warehouse", CFrame.new(WorldLayout.studs(0, -10)), warehouse) then
+	local w = WorldLayout.WAREHOUSE
+	local front = w.z + w.d / 2
+	if not art("Warehouse", CFrame.new(WorldLayout.studs(w.x, w.z)), warehouse) then
 		local orange = hex("ff7a45")
-		block(warehouse, "Back", 22, 7, 0.6, orange, 0, 3.5, -15)
-		block(warehouse, "SideW", 0.6, 7, 10, orange, -11, 3.5, -10)
-		block(warehouse, "SideE", 0.6, 7, 10, orange, 11, 3.5, -10)
-		block(warehouse, "Roof", 23, 0.5, 11, hex("e06a38"), 0, 7.25, -10)
-		block(warehouse, "Floor", 22, 0.06, 10, hex("9a9fa8"), 0, 0.2, -10)
-		block(warehouse, "Lintel", 23, 0.8, 0.6, orange, 0, 6.6, -5.1)
-		sign(warehouse, "ORDERS", 11, 2.8, 0, 8.9, -4.9, 0, hex("d6402b"), Color3.new(1, 1, 1))
+		block(warehouse, "Back", w.w, 7, 0.6, orange, w.x, 3.5, w.z - w.d / 2)
+		block(warehouse, "SideW", 0.6, 7, w.d, orange, w.x - w.w / 2, 3.5, w.z)
+		block(warehouse, "SideE", 0.6, 7, w.d, orange, w.x + w.w / 2, 3.5, w.z)
+		block(warehouse, "Roof", w.w + 1, 0.5, w.d + 1, hex("e06a38"), w.x, 7.25, w.z)
+		block(warehouse, "Lintel", w.w + 1, 0.8, 0.6, orange, w.x, 6.6, front - 0.1)
+		sign(warehouse, "ORDERS", 11, 2.8, w.x, 8.9, front + 0.1, 0, hex("d6402b"), Color3.new(1, 1, 1))
 	end
-	block(warehouse, "Counter", 20.6, 1.1, 1.2, hex("6a6f78"), 0, 0.7, -5.6, Enum.Material.Metal)
+	block(warehouse, "Counter", w.w - 1.4, 1.1, 1.2, hex("6a6f78"), w.x, 0.7, front - 0.6, Enum.Material.Metal)
 
 	-- The order board: the prompt opens it, and accepting is checked against HUB_REACH from here
 	local board = block(logistics, "OrderBoard", 4, 2.6, 0.3, hex("2b2f36"), hub.x, 1.9, hub.z - 2.6)
@@ -155,9 +170,10 @@ local function buildHub()
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = board
 	CollectionService:AddTag(board, "OrderBoard")
-	local ring = block(logistics, "HubRing", 0.05, Config.HUB_REACH * 2, Config.HUB_REACH * 2, hex("4dff88"), hub.x, 0.18, hub.z, Enum.Material.Neon)
+	local ring = block(logistics, "HubRing", 0.05, Config.HUB_REACH * 2, Config.HUB_REACH * 2, hex("4dff88"), hub.x, 0, hub.z, Enum.Material.Neon)
 	ring.Shape = Enum.PartType.Cylinder
-	ring.CFrame = CFrame.new(ring.Position) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Size = Vector3.new(0.1, ring.Size.Y, ring.Size.Z)
+	ring.CFrame = CFrame.new(hub.x * S, LAYER.detail - 0.05, hub.z * S) * CFrame.Angles(0, 0, math.rad(90))
 	ring.Transparency = 0.6
 	ring.CanCollide = false
 
@@ -224,10 +240,9 @@ local function buildHouse(h)
 	-- Path from the road through the gate, and the doorstep
 	local p0x, p0z = at(0, geo.doorV + 2.4)
 	local p1x, p1z = at(0, WorldLayout.ROAD_REACH)
-	local path = block(model, "Path", 5, 0.06, math.sqrt((p1x - p0x) ^ 2 + (p1z - p0z) ^ 2), hex("d9c79a"), (p0x + p1x) / 2, 0.04, (p0z + p1z) / 2)
+	local path = flat(model, "Path", 5, math.sqrt((p1x - p0x) ^ 2 + (p1z - p0z) ^ 2), hex("d9c79a"), (p0x + p1x) / 2, (p0z + p1z) / 2, LAYER.base)
 	path.CFrame = CFrame.new(path.Position) * CFrame.Angles(0, yaw, 0)
-	path.CanCollide = false
-	local step = block(model, "Doorstep", 4, 0.12, 2.2, hex("bdb8aa"), h.step.x, 0.08, h.step.z)
+	local step = flat(model, "Doorstep", 4, 2.2, hex("bdb8aa"), h.step.x, h.step.z, LAYER.detail)
 	step.CFrame = CFrame.new(step.Position) * CFrame.Angles(0, yaw, 0)
 
 	-- Gate parking pad on the road side: rides park here (milestone 4)
@@ -257,7 +272,7 @@ local function buildCemetery()
 	local x, z = (c.x0 + c.x1) / 2, (c.z0 + c.z1) / 2
 	local stone = hex("8b8f96")
 	local side = (c.z1 - c.z0) / 2 - c.gateGap
-	block(f, "Grass", c.x1 - c.x0, 0.04, c.z1 - c.z0, hex("6f8a62"), x, 0.03, z, Enum.Material.Grass)
+	flat(f, "Grass", c.x1 - c.x0, c.z1 - c.z0, hex("6f8a62"), x, z, LAYER.base)
 	block(f, "WallN", c.x1 - c.x0 + 0.6, 1.6, 0.6, stone, x, 0.8, c.z0)
 	block(f, "WallS", c.x1 - c.x0 + 0.6, 1.6, 0.6, stone, x, 0.8, c.z1)
 	block(f, "WallW", 0.6, 1.6, c.z1 - c.z0, stone, c.x0, 0.8, z)
@@ -273,8 +288,8 @@ local function buildCemetery()
 	local function at(name, w, h, d, color, px, y, pz)
 		return block(f, name, w, h, d, color, px + c.ox, y, pz + c.oz)
 	end
-	at("Path", 40.5, 0.04, 3.6, hex("d9c79a"), 92.75, 0.05, 88)
-	at("PathWest", 3.6, 0.04, 11, hex("d9c79a"), 74.5, 0.05, 82.5)
+	flat(f, "Path", 40.5, 3.6, hex("d9c79a"), 92.75 + c.ox, 88 + c.oz, LAYER.detail)
+	flat(f, "PathWest", 3.6, 11, hex("d9c79a"), 74.5 + c.ox, 82.5 + c.oz, LAYER.detail)
 	-- Apartment tombs, stacked like cabinets along three walls, and painted ground tombs
 	at("Apartments1", 2.4, 4.8, 27, hex("dcd8cc"), 70.2, 2.4, 88)
 	at("Apartments2", 30, 4.8, 2.4, hex("dcd8cc"), 89, 2.4, 72.2)
@@ -369,19 +384,19 @@ local function buildScenery()
 		sign(town, "SARI-SARI", 7, 1.6, s.x + s.face * 4.8, 5, s.z, yaw, hex("2f9e6e"), Color3.new(1, 1, 1))
 	end
 	local c = WorldLayout.COURT
-	block(community, "Court", 24, 0.05, 14, hex("c96f3a"), c.x, 0.03, c.z)
-	block(community, "CourtInner", 21, 0.06, 11, hex("d98a50"), c.x, 0.04, c.z)
+	flat(community, "Court", 24, 14, hex("c96f3a"), c.x, c.z, LAYER.base)
+	flat(community, "CourtInner", 21, 11, hex("d98a50"), c.x, c.z, LAYER.detail)
 	for _, s in { -1, 1 } do
 		block(community, "Hoop", 0.3, 4, 0.3, hex("444a55"), c.x + s * 11, 2, c.z)
 		block(community, "Backboard", 0.2, 1.3, 2.2, Color3.new(1, 1, 1), c.x + s * 10.6, 3.8, c.z)
 	end
 	local p = WorldLayout.POND
-	block(community, "PondBank", 26, 0.03, 18, hex("d9c79a"), p.x, 0.02, p.z)
-	local water = block(community, "Pond", 24, 0.05, 16, hex("3f97d6"), p.x, 0.03, p.z, Enum.Material.Glass)
+	flat(community, "PondBank", 26, 18, hex("d9c79a"), p.x, p.z, LAYER.base)
+	local water = flat(community, "Pond", 24, 16, hex("3f97d6"), p.x, p.z, LAYER.detail, Enum.Material.Glass)
 	water.Transparency = 0.2
 	local k = WorldLayout.PICKLEBALL
-	block(community, "Pickleball", 14, 0.05, 26, hex("2f7d5b"), k.x, 0.03, k.z)
-	block(community, "PickleballInner", 10, 0.06, 20, hex("3f8fc9"), k.x, 0.04, k.z)
+	flat(community, "Pickleball", 14, 26, hex("2f7d5b"), k.x, k.z, LAYER.base)
+	flat(community, "PickleballInner", 10, 20, hex("3f8fc9"), k.x, k.z, LAYER.detail)
 	block(community, "Net", 10.4, 0.8, 0.08, hex("f2f2ee"), k.x, 0.55, k.z)
 end
 
@@ -392,7 +407,7 @@ local function buildLots()
 		model:SetAttribute("LotId", lot.id)
 		model:SetAttribute("District", lot.district)
 		model.Parent = gameplay.HomeLots
-		block(model, "Plot", lot.w, 0.05, lot.d, hex("b9a27a"), lot.x, 0.03, lot.z, Enum.Material.Ground)
+		flat(model, "Plot", lot.w, lot.d, hex("b9a27a"), lot.x, lot.z, LAYER.base)
 		-- Owner sign beside the front; LotService writes the name on it
 		local sx, sz = lot.x + lot.dx * 9 + lot.dz * 6, lot.z + lot.dz * 9 - lot.dx * 6
 		block(model, "SignPost", 0.25, 2.4, 0.25, hex("7a5a3c"), sx, 1.2, sz)
