@@ -57,6 +57,7 @@ return {
 		local Rules, Config = load()
 		local dog = dogOf(Rules, "medium", 10)
 		local still = { id = "p", x = 10.5, z = 0, feet = 0 }
+		Rules.step(dog, { still }, Config.DOG_ALERT + 0.01, Random.new(4)) -- notices, barks, warning over
 		assert(Rules.step(dog, { still }, 0.05, Random.new(4)).bite == "p", "first bite")
 		assert(Rules.step(dog, { still }, 0.05, Random.new(4)).bite == nil, "bit again too soon")
 		local waited
@@ -66,10 +67,48 @@ return {
 		assert(waited == "p", "never bit again")
 	end,
 	jumpingClearsASmallDogButNotABigOne = function()
-		local Rules = load()
-		local small = dogOf(Rules, "tiny", 10)
-		assert(Rules.step(small, { { id = "p", x = 10.3, z = 0, feet = 1 } }, 0.05, Random.new(5)).bite == nil)
-		local big = dogOf(Rules, "giant", 10)
-		assert(Rules.step(big, { { id = "p", x = 10.3, z = 0, feet = 0.8 } }, 0.05, Random.new(5)).bite == "p")
+		local Rules, Config = load()
+		local function afterAlert(size, runner)
+			local dog = dogOf(Rules, size, 10)
+			Rules.step(dog, { runner }, Config.DOG_ALERT + 0.01, Random.new(5)) -- the warning
+			return Rules.step(dog, { runner }, 0.05, Random.new(5)).bite
+		end
+		assert(afterAlert("tiny", { id = "p", x = 10.3, z = 0, feet = 1 }) == nil)
+		assert(afterAlert("giant", { id = "p", x = 10.3, z = 0, feet = 0.8 }) == "p")
+	end,
+	aDogBarksBeforeItChases = function()
+		local Rules, Config = load()
+		local dog = dogOf(Rules, "tiny", 10)
+		local runner = { id = "p", x = 11, z = 0, feet = 0 }
+		local first = Rules.step(dog, { runner }, 0.05, Random.new(6))
+		assert(first.started == "p" and first.bite == nil, "noticed, no bite")
+		assert(Rules.state(dog) == "alert")
+		local x = dog.x
+		for _ = 1, math.floor(Config.DOG_ALERT / 0.05) - 2 do
+			assert(Rules.step(dog, { runner }, 0.05, Random.new(6)).bite == nil, "bit during the warning")
+		end
+		assert(dog.x == x, "moved during the warning")
+		for _ = 1, 4 do
+			Rules.step(dog, { runner }, 0.05, Random.new(6))
+		end
+		assert(Rules.state(dog) == "chase", "never gave chase")
+	end,
+	aDogTrotsHomeWhenYouLeave = function()
+		local Rules, Config = load()
+		local dog = dogOf(Rules, "medium", 30)
+		local home = { x = dog.home.x, z = dog.home.z }
+		local runner = { id = "p", x = 50, z = 0, feet = 0 }
+		Rules.step(dog, { runner }, Config.DOG_ALERT + 0.01, Random.new(7))
+		for _ = 1, 40 do
+			Rules.step(dog, { runner }, 0.05, Random.new(7))
+		end
+		runner.x = 80 -- out of the yard
+		local closest = math.huge
+		for _ = 1, 400 do
+			Rules.step(dog, { runner }, 0.05, Random.new(7))
+			closest = math.min(closest, (dog.x - home.x) ^ 2 + (dog.z - home.z) ^ 2)
+		end
+		assert(closest < 1, "didn't go home")
+		assert(Rules.state(dog) == "idle")
 	end,
 }

@@ -19,7 +19,9 @@ export type Dog = {
 	home: { x: number, z: number },
 	wait: number,
 	cd: number,
-	chasing: string?,
+	chasing: string?, -- who it's after (alerting or chasing)
+	alert: number, -- seconds of warning left before the chase (Blueprint §9.2 rule 2)
+	returning: boolean, -- trotting home after someone left the yard
 }
 export type Runner = { id: string, x: number, z: number, feet: number }
 
@@ -42,6 +44,8 @@ function ChaserRules.new(house, size: string?, body: Rect?): Dog
 		wait = 0,
 		cd = 0,
 		chasing = nil,
+		alert = 0,
+		returning = false,
 	}
 end
 
@@ -50,7 +54,17 @@ local function inside(x: number, z: number, r: Rect): boolean
 end
 ChaserRules.inside = inside
 
--- One step. Returns who it started chasing and who it bit this step, if anyone.
+-- The dog's state for the client's posture: "idle", "alert" (stopped, head up, barking) or "chase".
+function ChaserRules.state(dog: Dog): string
+	if not dog.chasing then
+		return "idle"
+	end
+	return if dog.alert > 0 then "alert" else "chase"
+end
+
+-- One step. Returns who it noticed (and started barking at) and who it bit, if anyone. A dog
+-- that notices someone first stands and barks for DOG_ALERT seconds, so the player can read the
+-- threat before it moves (Blueprint §9.2 rule 2); then it chases.
 function ChaserRules.step(dog: Dog, runners: { Runner }, dt: number, rng: Random): { started: string?, bite: string? }
 	local kind = Config.DOG_TYPES[dog.size]
 	local result = {}
@@ -66,15 +80,33 @@ function ChaserRules.step(dog: Dog, runners: { Runner }, dt: number, rng: Random
 	end
 	local was = dog.chasing
 	dog.chasing = nearest and nearest.id
-	if dog.chasing and dog.chasing ~= was then
+	if dog.chasing and not was then
+		-- Noticed someone: stop, face them and bark before giving chase
 		result.started = dog.chasing
+		dog.alert = Config.DOG_ALERT
+	elseif not dog.chasing and was then
+		-- They got out: trot back home before wandering again
+		dog.alert = 0
+		dog.returning = true
+		dog.target.x, dog.target.z = dog.home.x, dog.home.z
 	end
 	dog.cd -= dt
 
 	local speed = Config.DOG_WANDER
-	if nearest then
+	if nearest and dog.alert > 0 then
+		dog.alert = math.max(0, dog.alert - dt)
+		dog.yaw = math.atan2(nearest.x - dog.x, nearest.z - dog.z)
+		return result -- no moving and no biting while it warns
+	elseif nearest then
+		dog.returning = false
 		dog.target.x, dog.target.z = nearest.x, nearest.z
 		speed = kind.speed
+	elseif dog.returning then
+		speed = Config.DOG_WANDER * 1.5
+		if (dog.home.x - dog.x) ^ 2 + (dog.home.z - dog.z) ^ 2 < 1 then
+			dog.returning = false
+			dog.wait = 0
+		end
 	else
 		dog.wait -= dt
 		if dog.wait < 0 then

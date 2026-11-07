@@ -60,6 +60,7 @@ Config.DOG_TYPES = {
 	giant = { speed = 4.6, damage = 45, knock = 19, stun = 1.1, danger = 3, scale = 1.9 },
 }
 Config.DOG_WANDER = 1.6 -- m/s when nobody's in the yard
+Config.DOG_ALERT = 0.6 -- s a dog stands and barks before it chases (Gregory's call; to tune)
 Config.BITE_GAP = 1.2 -- s between one dog's bites
 Config.DOG_WAKE = 60 -- m: dogs with nobody this close stay asleep, to save the server work
 

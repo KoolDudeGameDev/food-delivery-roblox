@@ -67,7 +67,7 @@ local function buildModel(parent: Instance, breedKey: string, at: { x: number, z
 	-- A red "!" over its head while it chases; the client shows it
 	local alert = Instance.new("BillboardGui")
 	alert.Name = "Alert"
-	alert.Size = UDim2.fromOffset(40, 40)
+	alert.Size = UDim2.fromOffset(90, 40) -- wide enough for "WOOF!" or "HONK!"
 	alert.StudsOffsetWorldSpace = Vector3.new(0, (2.6 * s + 1) * S, 0)
 	alert.AlwaysOnTop = true
 	alert.Enabled = false
@@ -142,8 +142,9 @@ local function tick()
 		end
 		if not awake then
 			if dog.chasing then
-				dog.chasing = nil
+				dog.chasing, dog.alert = nil, 0
 				entry.model:SetAttribute("Chasing", false)
+				entry.model:SetAttribute("State", "idle")
 			end
 			continue
 		end
@@ -152,10 +153,12 @@ local function tick()
 		entry.model:SetAttribute("Z", dog.z)
 		entry.model:SetAttribute("Yaw", dog.yaw)
 		entry.model:SetAttribute("Chasing", dog.chasing ~= nil)
+		entry.model:SetAttribute("State", ChaserRules.state(dog)) -- the client's posture: idle, alert or chase
 		if result.started and byId[result.started] then
 			Remotes.Notify:FireClient(byId[result.started], { kind = "toast", text = `{entry.breed.call or "WOOF!"} Run!` })
 		end
 		if result.bite and byId[result.bite] then
+			entry.model:SetAttribute("BiteAt", workspace:GetServerTimeNow()) -- clients play the lunge
 			bite(byId[result.bite], entry)
 		end
 	end
@@ -175,6 +178,8 @@ function ChaserService.start()
 			model:SetAttribute("Z", dog.z)
 			model:SetAttribute("Yaw", 0)
 			model:SetAttribute("Chasing", false)
+			model:SetAttribute("State", "idle")
+			model:SetAttribute("Call", breed.call or "WOOF!")
 			table.insert(entries, { dog = dog, model = model, breed = breed })
 		end
 	end

@@ -1,7 +1,8 @@
--- Moves and animates this client's copy of each chaser: the model glides to where the server
--- says the dog is (the X, Z, Yaw and Chasing attributes ChaserService sets), legs swing as it
--- runs (the prototype's walk cycle), its tail wags, faster while chasing, and it bounds when it
--- chases. Moving a server-built model here is local only; the server never moves them itself.
+-- Moves and animates this client's copy of each chaser, so its body says what it's about to do
+-- (Blueprint §9.2 rule 2, §13): idle, it wanders with a lazy wag; alert, it freezes facing you,
+-- head and tail up, barking ("WOOF!" over its head); chasing, it bounds with its legs going and a
+-- "!" overhead; and it lunges when it bites. Positions come from ChaserService's attributes;
+-- moving a server-built model here is local only.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -42,6 +43,8 @@ local function rigOf(model: Model): Rig
 				kind, joint = "leg", offset * CFrame.new(0, p.Size.Y / 2, 0) -- the hip
 			elseif p.Name == "Tail" then
 				kind, joint = "tail", offset * CFrame.new(0, -p.Size.Y / 2, 0) -- the root
+			elseif p.Name == "Head" or p.Name == "Ear" or p.Name == "Muzzle" or p.Name == "Neck" or p.Name == "Beak" then
+				kind = "head"
 			end
 			table.insert(rig.parts, p)
 			table.insert(rig.offsets, offset)
@@ -68,16 +71,24 @@ function Chasers.step(dt: number, clock: number)
 			continue
 		end
 		local rig = rigOf(model)
-		local chasing = model:GetAttribute("Chasing") == true
-		local target = CFrame.new(x * S, 0, z * S) * CFrame.Angles(0, yaw, 0)
+		local state = model:GetAttribute("State") or "idle"
+		local chasing = state == "chase"
+		local alert = state == "alert"
+		-- A lunge for a quarter second after a bite
+		local biteAt = model:GetAttribute("BiteAt")
+		local since = if biteAt then workspace:GetServerTimeNow() - biteAt else math.huge
+		local lunge = if since < 0.25 then math.sin(since / 0.25 * math.pi) * 0.6 * S else 0
+		local target = CFrame.new(x * S, 0, z * S) * CFrame.Angles(0, yaw, 0) * CFrame.new(0, 0, lunge)
 		local before = rig.shown.Position
 		rig.shown = rig.shown:Lerp(target, blend)
 		local moved = (rig.shown.Position - before).Magnitude / S
 		rig.phase += moved * 2.4 -- the prototype's 2.4 radians of stride per metre
 		local swing = if moved > 0.002 then math.sin(rig.phase) * 0.9 else 0
 		local hop = if chasing then math.abs(math.sin(rig.phase)) * 0.25 * S else 0
-		local wag = math.sin(clock * (if chasing then 20 else 6)) * 0.6
+		local wag = math.sin(clock * (if chasing or alert then 20 else 6)) * 0.6
 		local base = rig.shown * CFrame.new(0, hop, 0)
+		-- Alert: head up and a little bark bob; the tail stands up
+		local raise = if alert then CFrame.new(0, (0.18 + math.abs(math.sin(clock * 14)) * 0.08) * S, 0) else CFrame.new()
 		for i, part in rig.parts do
 			local offset, joint = rig.offsets[i], rig.joints[i]
 			local frame
@@ -85,16 +96,23 @@ function Chasers.step(dt: number, clock: number)
 				local turn = if i % 2 == 0 then swing else -swing
 				frame = base * joint * CFrame.Angles(turn, 0, 0) * joint:Inverse() * offset
 			elseif rig.kinds[i] == "tail" and joint then
-				frame = base * joint * CFrame.Angles(0, wag, 0) * joint:Inverse() * offset
+				local up = if alert then CFrame.Angles(-0.8, 0, 0) else CFrame.new()
+				frame = base * joint * up * CFrame.Angles(0, wag, 0) * joint:Inverse() * offset
+			elseif rig.kinds[i] == "head" then
+				frame = base * raise * offset
 			else
 				frame = base * offset
 			end
 			table.insert(parts, part)
 			table.insert(frames, frame)
 		end
-		local alert = model:FindFirstChild("Alert")
-		if alert then
-			(alert :: BillboardGui).Enabled = chasing
+		local bubble = model:FindFirstChild("Alert") :: BillboardGui?
+		if bubble then
+			bubble.Enabled = alert or chasing
+			local label = bubble:FindFirstChildOfClass("TextLabel")
+			if label then
+				label.Text = if alert then model:GetAttribute("Call") or "WOOF!" else "!"
+			end
 		end
 	end
 	if #parts > 0 then
