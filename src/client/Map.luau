@@ -19,8 +19,9 @@ export type Pin = { x: number, z: number, icon: string, color: Color3, key: stri
 
 local DISTRICT_NAMES = {
 	{ "Town Center", 0, -78 },
-	{ "Residential East", 78, 0 },
-	{ "Residential West", -78, 0 },
+	{ "Residential East", 78, -60 },
+	{ "Residential West", -78, -70 },
+	{ "Community", -80, 20 },
 	{ "Rural Outskirts", 0, -195 },
 	{ "Rural Outskirts", 0, 195 },
 	{ "Cemetery", -148, 236 },
@@ -71,7 +72,7 @@ function View:draw()
 	canvas:ClearAllChildren()
 	canvas.Size = UDim2.fromOffset(2 * EDGE * ppm, 2 * EDGE * ppm)
 	for _, r in WorldLayout.ROADS do
-		local color = if r.dirt then hex("c9a878") else hex("5a5f6a")
+		local color = if r.foot then hex("e8d8b0") elseif r.dirt then hex("c9a878") else hex("5a5f6a")
 		rectFrame(canvas, r.x - r.w / 2, r.z - r.d / 2, r.x + r.w / 2, r.z + r.d / 2, ppm, color, 2)
 	end
 	for _, h in WorldLayout.HOUSES do

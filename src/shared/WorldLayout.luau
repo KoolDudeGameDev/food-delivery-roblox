@@ -4,7 +4,9 @@
 --   * customer houses split 7 inner / 7 outer residential / 7 rural (Blueprint §7.1);
 --   * a rural dirt-road loop runs through the outskirts past the outer ring;
 --   * the cemetery sits on the south-west edge, down a quiet side road (Blueprint §9.3);
---   * the north-south spoke runs on to the map edge, reserved for future districts (§14).
+--   * connectors join the rings at staggered T-junctions, never four-way crossings (§5.2);
+--   * the Community District sits together in the middle-west (§3.1 E, §4.1);
+--   * corridors run on to the map edge, reserved for future districts (§14).
 -- Pure data and geometry: the server builds from it, the client draws the map from it, and
 -- the tests check it. Ids are stable, because saves use them.
 local Config = require(script.Parent.Config)
@@ -23,13 +25,24 @@ WorldLayout.ROAD_REACH = 23 -- how far a house's path runs to meet the road
 local EDGE, RING, OUTER, RURAL = WorldLayout.EDGE, WorldLayout.RING, WorldLayout.OUTER, WorldLayout.RURAL
 local ROAD_W, DIRT_W = WorldLayout.ROAD_W, WorldLayout.DIRT_W
 
-export type Road = { w: number, d: number, x: number, z: number, dirt: boolean?, name: string }
+export type Road = { w: number, d: number, x: number, z: number, dirt: boolean?, foot: boolean?, name: string }
 
 local function road(name, w, d, x, z, dirt): Road
 	return { name = name, w = w, d = d, x = x, z = z, dirt = dirt }
 end
 
+-- A straight connector between two points on one axis; its ends sit on the centrelines of the
+-- roads it joins, so every junction is a T (Blueprint §5.2).
+local function link(name, x0, z0, x1, z1, width, dirt): Road
+	local w = if z0 == z1 then math.abs(x1 - x0) else width
+	local d = if x0 == x1 then math.abs(z1 - z0) else width
+	return road(name, w, d, (x0 + x1) / 2, (z0 + z1) / 2, dirt)
+end
+
+WorldLayout.FOOT_W = 2.5
+
 WorldLayout.ROADS = {
+	-- The two rings (their corners are bends)
 	road("InnerN", RING * 2 + ROAD_W, ROAD_W, 0, -RING),
 	road("InnerS", RING * 2 + ROAD_W, ROAD_W, 0, RING),
 	road("InnerW", ROAD_W, RING * 2 + ROAD_W, -RING, 0),
@@ -38,22 +51,49 @@ WorldLayout.ROADS = {
 	road("OuterS", OUTER * 2 + ROAD_W, ROAD_W, 0, OUTER),
 	road("OuterW", ROAD_W, OUTER * 2 + ROAD_W, -OUTER, 0),
 	road("OuterE", ROAD_W, OUTER * 2 + ROAD_W, OUTER, 0),
-	-- The spokes: north-south runs to the map edge (expansion corridors), east-west to the loop
-	road("SpokeNS", ROAD_W, EDGE * 2, 0, 0),
-	road("SpokeEW", RURAL * 2, ROAD_W, 0, 0),
-	-- The rural loop, dirt
+	-- Connectors, staggered so no road runs straight through another: T-junctions only
+	link("Centre", -RING, 0, RING, 0, ROAD_W), -- through the middle of town, past the hub
+	link("Palengke", 0, -OUTER, 0, -RING, ROAD_W), -- the market street
+	link("SouthLink", 0, RING, 0, OUTER, ROAD_W),
+	link("WestLink", -OUTER, 20, -RING, 20, ROAD_W), -- through the Community District
+	link("EastLink", RING, 20, OUTER, 20, ROAD_W),
+	-- The rural loop and its tracks, dirt
 	road("RuralN", RURAL * 2 + DIRT_W, DIRT_W, 0, -RURAL, true),
 	road("RuralS", RURAL * 2 + DIRT_W, DIRT_W, 0, RURAL, true),
 	road("RuralW", DIRT_W, RURAL * 2 + DIRT_W, -RURAL, 0, true),
 	road("RuralE", DIRT_W, RURAL * 2 + DIRT_W, RURAL, 0, true),
-	-- The cemetery's side road
-	road("CemeteryLane", DIRT_W, 30, -120, RURAL + 18, true),
+	link("TrackN", -40, -RURAL, -40, -OUTER, DIRT_W, true),
+	link("TrackS", 40, OUTER, 40, RURAL, DIRT_W, true),
+	link("TrackW", -RURAL, 50, -OUTER, 50, DIRT_W, true),
+	link("TrackE", OUTER, -30, RURAL, -30, DIRT_W, true),
+	link("CemeteryLane", -120, RURAL, -120, RURAL + 33, DIRT_W, true),
+	-- Reserved corridors to future districts (Blueprint §14), closed at the edge
+	link("CorridorN", 0, -EDGE, 0, -RURAL, ROAD_W),
+	link("CorridorS", 0, RURAL, 0, EDGE, ROAD_W),
+	link("FutureLink", -EDGE, 150, -RURAL, 150, ROAD_W),
 }
 
--- Where the reserved corridors meet the map edge (Blueprint §14): closed for now.
+-- Footpath shortcuts between the rings, on foot (Blueprint §5.1). Never needed for a delivery.
+for _, f in { { "FootpathNW", -48, -OUTER, -48, -RING }, { "FootpathSE", 50, RING, 50, OUTER } } do
+	local path = link(f[1], f[2], f[3], f[4], f[5], WorldLayout.FOOT_W, true)
+	path.foot = true
+	table.insert(WorldLayout.ROADS, path)
+end
+
+-- Where the reserved corridors meet the map edge: closed for now. yaw turns the barrier across.
 WorldLayout.EXPANSION = {
-	{ id = "north", x = 0, z = -EDGE + 4, label = "FUTURE DISTRICT" },
-	{ id = "south", x = 0, z = EDGE - 4, label = "FUTURE DISTRICT" },
+	{ id = "north", x = 0, z = -EDGE + 4, yaw = 0, label = "FUTURE DISTRICT" },
+	{ id = "south", x = 0, z = EDGE - 4, yaw = 0, label = "FUTURE DISTRICT" },
+	{ id = "southwest", x = -EDGE + 4, z = 150, yaw = math.pi / 2, label = "FUTURE LINK" },
+}
+
+-- Direction signs at the main junctions (Blueprint §5.2 rule 5). yaw is the way the sign faces.
+WorldLayout.SIGNS = {
+	{ x = -14, z = -44, yaw = 0, text = "PALENGKE ↑" },
+	{ x = -3, z = -9, yaw = 0, text = "WAREHOUSE →" },
+	{ x = 0, z = 9, yaw = math.pi, text = "← DEALER   MECHANIC →" },
+	{ x = -129, z = 199, yaw = math.pi, text = "CEMETERY ↓" },
+	{ x = -82, z = 13, yaw = 0, text = "COMMUNITY" },
 }
 
 -- The warehouse hub sits in its own paved yard in the north-east block of the crossroads, so
@@ -118,13 +158,13 @@ WorldLayout.HOUSES = {
 	house("inner", "Yellow", "e8c23c", 62, -30, -1, 0, "beagle"),
 	house("inner", "Green", "3fae68", 30, 62, 0, -1, nil, "large"),
 	house("inner", "Pink", "e77fb3", -30, 62, 0, -1, "shihTzu", "small"),
-	house("inner", "Purple", "8d63d6", -62, 30, 1, 0, nil),
+	house("inner", "Purple", "8d63d6", -18, -19, 0, 1, nil, "small"), -- inside the inner ring, on the centre road
 	house("inner", "Teal", "2fb5a8", -62, -30, 1, 0, "pomeranian", "small"),
 	-- Outer residential, on both sides of the outer ring: moderate routes, more varied gates
 	house("outer", "Coral", "f0776a", -30, -96, 0, -1, "cat", "small"),
 	house("outer", "Lime", "9ccc3c", 96, -30, 1, 0, "germanShepherd", "large"),
 	house("outer", "Navy", "3a5a9a", 30, 96, 0, 1, "aspin"),
-	house("outer", "Peach", "f4b183", -96, 30, -1, 0, nil, "small"),
+	house("outer", "Peach", "f4b183", -30, 96, 0, 1, nil, "small"),
 	house("outer", "Gold", "d6a520", 143, -70, -1, 0, "greatDane", "large"),
 	house("outer", "Mint", "7fd8b0", 143, 70, -1, 0, "cat"),
 	house("outer", "Orange", "f0883a", -143, -70, 1, 0, nil),
@@ -184,11 +224,14 @@ WorldLayout.TOWERS = {
 	{ x = 62, z = 62, w = 18, d = 14, floors = 3, color = "a9c4d8" },
 	{ x = -62, z = 62, w = 16, d = 16, floors = 4, color = "d8b4a8" },
 }
-WorldLayout.SARI_SARI = { { x = 96, z = 30, face = 1 }, { x = -96, z = -30, face = -1 } }
-WorldLayout.BARANGAY = { x = 64, z = 30, w = 12, d = 16 } -- faces west, to the inner ring
-WorldLayout.COURT = { x = 30, z = -96 }
-WorldLayout.POND = { x = -30, z = 96 }
-WorldLayout.PICKLEBALL = { x = -92, z = 90 }
+-- Sari-sari stores, facing (dx, dz) onto the road; 14 m across the front, 9 m deep.
+WorldLayout.SARI_SARI = { { x = 96, z = 38, dx = 1, dz = 0 }, { x = -30, z = 132, dx = 0, dz = -1 } }
+-- The Community District (Blueprint §3.1 E, §4.1 middle-west): the court and pond north of the
+-- West Link, the barangay hall and pickleball south of it.
+WorldLayout.COURT = { x = -95, z = -30, w = 14, d = 24 }
+WorldLayout.POND = { x = -95, z = 0, w = 26, d = 18 }
+WorldLayout.BARANGAY = { x = -60, z = 38, w = 12, d = 16 } -- faces north, to the West Link
+WorldLayout.PICKLEBALL = { x = -92, z = 40, w = 26, d = 14 }
 
 -- The palengke: market stalls on both sidewalks of the north spoke, with bunting overhead.
 WorldLayout.MARKET = { z0 = -108, z1 = -48, step = 10, x = 9, w = 4, d = 5 }
@@ -273,7 +316,8 @@ function WorldLayout.footprints(): { Footprint }
 		table.insert(list, rect(`Tower{i}`, "building", "TownCenter", t.x, t.z, t.w, t.d))
 	end
 	for i, s in WorldLayout.SARI_SARI do
-		table.insert(list, rect(`SariSari{i}`, "building", "TownCenter", s.x, s.z, 9, 14))
+		local w, d = if s.dx ~= 0 then 9 else 14, if s.dx ~= 0 then 14 else 9
+		table.insert(list, rect(`SariSari{i}`, "building", "TownCenter", s.x, s.z, w, d))
 	end
 	local b = WorldLayout.BARANGAY
 	table.insert(list, rect("Barangay", "building", "CommunityDistrict", b.x, b.z, b.w, b.d))
@@ -285,9 +329,12 @@ function WorldLayout.footprints(): { Footprint }
 	-- The paved hub yard holds the warehouse, so it's the one footprint others may sit inside
 	local y = WorldLayout.HUB_YARD
 	table.insert(list, rect("HubYard", "hub", "LogisticsDistrict", y.x, y.z, y.w, y.d))
-	table.insert(list, rect("Court", "ground", "CommunityDistrict", WorldLayout.COURT.x, WorldLayout.COURT.z, 24, 14))
-	table.insert(list, rect("Pond", "ground", "CommunityDistrict", WorldLayout.POND.x, WorldLayout.POND.z, 26, 18))
-	table.insert(list, rect("Pickleball", "ground", "CommunityDistrict", WorldLayout.PICKLEBALL.x, WorldLayout.PICKLEBALL.z, 14, 26))
+	for _, c in { { "Court", WorldLayout.COURT }, { "Pond", WorldLayout.POND }, { "Pickleball", WorldLayout.PICKLEBALL } } do
+		table.insert(list, rect(c[1], "ground", "CommunityDistrict", c[2].x, c[2].z, c[2].w, c[2].d))
+	end
+	for i, g in WorldLayout.SIGNS do
+		table.insert(list, rect(`Sign{i}`, "prop", "", g.x, g.z, 1, 1))
+	end
 	local m = WorldLayout.MARKET
 	for z = m.z0, m.z1, m.step do
 		for _, s in { -1, 1 } do
@@ -344,6 +391,27 @@ function WorldLayout.trees(): { { x: number, z: number, s: number } }
 			end
 			if clear then
 				table.insert(list, { x = x, z = z, s = rng:NextNumber(0.85, 1.45) })
+			end
+		end
+	end
+	return list
+end
+
+-- Street lamps along both rings (the prototype's spacing), on the sidewalk, with an arm over
+-- the road (ox, oz). Spots that land on a junction or anything built are skipped.
+function WorldLayout.lamps(): { { x: number, z: number, ox: number, oz: number } }
+	local list, prints = {}, WorldLayout.footprints()
+	local side = ROAD_W / 2 + 0.9
+	for _, ring in { RING, OUTER } do
+		local step = if ring == RING then 24 else 42
+		for a = -ring + 12, ring - 6, step do
+			for _, s in { -1, 1 } do
+				for _, spot in { { a, s * (ring + side), 0, -s }, { s * (ring + side), a, -s, 0 } } do
+					local x, z = spot[1], spot[2]
+					if not WorldLayout.onRoad(x, z, 0.3) and not WorldLayout.blocked(x, z, 0.5, prints) then
+						table.insert(list, { x = x, z = z, ox = spot[3], oz = spot[4] })
+					end
+				end
 			end
 		end
 	end

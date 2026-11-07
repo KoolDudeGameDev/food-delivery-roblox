@@ -69,6 +69,45 @@ return {
 			assert(not (p.x0 < 6 and p.x1 > -6 and p.z0 < 6 and p.z1 > -6), `{p.name} blocks the crossroads`)
 		end
 	end,
+	noFourWayCrossings = function()
+		-- Blueprint §5.2: T-junctions and bends only. Where two roads meet, at least one of them
+		-- must end inside the other, not run straight through it.
+		local L = load()
+		local function through(a, b)
+			local ra, rb = roadRect(a), roadRect(b)
+			if a.d > a.w then -- a runs north-south
+				return ra.z0 < rb.z0 - 0.01 and ra.z1 > rb.z1 + 0.01
+			end
+			return ra.x0 < rb.x0 - 0.01 and ra.x1 > rb.x1 + 0.01
+		end
+		for i, a in L.ROADS do
+			for j = i + 1, #L.ROADS do
+				local b = L.ROADS[j]
+				if overlaps(roadRect(a), roadRect(b), 0) then
+					assert(not (through(a, b) and through(b, a)), `{a.name} and {b.name} cross`)
+				end
+			end
+		end
+	end,
+	theCommunityDistrictSitsTogetherInTheMiddleWest = function()
+		local L = load()
+		local n = 0
+		for _, p in L.footprints() do
+			if p.district == "CommunityDistrict" then
+				n += 1
+				assert(p.x0 > -L.OUTER and p.x1 < -L.RING and p.z0 > -60 and p.z1 < 60, `{p.name} is outside the middle-west`)
+			end
+		end
+		assert(n == 4, `{n} community footprints`)
+	end,
+	lampsStayOnTheSidewalks = function()
+		local L = load()
+		local lamps = L.lamps()
+		assert(#lamps > 20, `only {#lamps} lamps`)
+		for _, l in lamps do
+			assert(not L.onRoad(l.x, l.z, 0.3) and not L.blocked(l.x, l.z, 0.5), "a lamp is in the way")
+		end
+	end,
 	everyDoorstepIsInsideItsYard = function()
 		local L = load()
 		for _, h in L.HOUSES do

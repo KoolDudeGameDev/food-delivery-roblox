@@ -134,7 +134,9 @@ local function buildRoads()
 	local roads = folder("Roads", world)
 	for _, r in WorldLayout.ROADS do
 		-- Every road of a kind shares one height and colour, so crossings are seamless
-		if r.dirt then
+		if r.foot then
+			flat(roads, r.name, r.w, r.d, hex("d9c79a"), r.x, r.z, LAYER.detail) -- a trodden footpath
+		elseif r.dirt then
 			flat(roads, r.name, r.w, r.d, hex("c9a878"), r.x, r.z, LAYER.detail)
 		else
 			flat(roads, `{r.name}Sidewalk`, r.w + 3, r.d + 3, hex("bfc3c9"), r.x, r.z, LAYER.sidewalk)
@@ -145,9 +147,15 @@ local function buildRoads()
 	local reserve = world.ExpansionReserve
 	for _, e in WorldLayout.EXPANSION do
 		local stripes = block(reserve, `Barrier_{e.id}`, WorldLayout.ROAD_W + 3, 1.2, 0.5, hex("ff7a45"), e.x, 0.6, e.z)
-		stripes.Material = Enum.Material.SmoothPlastic
-		local yaw = if e.z < 0 then math.pi else 0
-		sign(reserve, e.label, 8, 1.4, e.x, 2.4, e.z, yaw, hex("ffd23f"), hex("222222"))
+		stripes.CFrame = CFrame.new(stripes.Position) * CFrame.Angles(0, e.yaw, 0)
+		-- The sign faces back into town
+		local facing = if e.z < -100 then 0 elseif e.z > 100 then math.pi else math.pi / 2
+		sign(reserve, e.label, 8, 1.4, e.x, 2.4, e.z, facing, hex("ffd23f"), hex("222222"))
+	end
+	-- Direction signs at the main junctions (Blueprint §5.2 rule 5)
+	for i, g in WorldLayout.SIGNS do
+		block(roads, `SignPost{i}`, 0.2, 3.4, 0.2, hex("6a6f78"), g.x, 1.7, g.z)
+		sign(roads, g.text, math.max(4, #g.text * 0.42), 1, g.x, 3.4, g.z, g.yaw, hex("2f6db5"), Color3.new(1, 1, 1))
 	end
 end
 
@@ -375,45 +383,53 @@ local function buildScenery()
 			block(town, `TowerRoof{i}`, t.w + 1, 0.6, t.d + 1, hex("6e7480"), t.x, t.floors * 6 + 0.3, t.z)
 		end
 	end
-	-- The barangay hall, facing the inner ring, with a flag out front
+	-- The barangay hall, facing north onto the West Link, with a flag and a notice board out front
 	local b = WorldLayout.BARANGAY
-	if not art("Barangay", CFrame.new(WorldLayout.studs(b.x, b.z)) * CFrame.Angles(0, -math.pi / 2, 0), community) then
+	local front = b.z - b.d / 2
+	if not art("Barangay", CFrame.new(WorldLayout.studs(b.x, b.z)) * CFrame.Angles(0, math.pi, 0), community) then
 		block(community, "BarangayHall", b.w, 6, b.d, hex("f4efe4"), b.x, 3, b.z, Enum.Material.Concrete)
 		block(community, "BarangayRoof", b.w + 1, 0.6, b.d + 1, hex("2f6db5"), b.x, 6.3, b.z)
 	end
-	sign(community, "BARANGAY HALL", 9, 1.4, b.x - b.w / 2 - 0.1, 5, b.z, -math.pi / 2, hex("2f6db5"), Color3.new(1, 1, 1))
-	block(community, "Flagpole", 0.2, 8, 0.2, hex("d6d9de"), b.x - b.w / 2 - 3, 4, b.z - 5)
-	block(community, "FlagBlue", 2.4, 0.6, 0.05, hex("0038a8"), b.x - b.w / 2 - 1.7, 7.6, b.z - 5)
-	block(community, "FlagRed", 2.4, 0.6, 0.05, hex("ce1126"), b.x - b.w / 2 - 1.7, 7.0, b.z - 5)
+	sign(community, "BARANGAY HALL", 9, 1.4, b.x, 5, front - 0.1, math.pi, hex("2f6db5"), Color3.new(1, 1, 1))
+	block(community, "Flagpole", 0.2, 8, 0.2, hex("d6d9de"), b.x - 4, 4, front - 2)
+	block(community, "FlagBlue", 0.05, 0.6, 2.4, hex("0038a8"), b.x - 4, 7.6, front - 3.3)
+	block(community, "FlagRed", 0.05, 0.6, 2.4, hex("ce1126"), b.x - 4, 7.0, front - 3.3)
+	block(community, "NoticeBoardPost", 0.2, 2.2, 0.2, hex("7a5a3c"), b.x + 4, 1.1, front - 1.5)
+	sign(community, "NOTICES", 2.4, 1.6, b.x + 4, 2, front - 1.5, math.pi, hex("8a6a4a"), hex("fff4d8"))
 	buildMarket()
 	local greenery = folder("Trees", world.RuralOutskirts)
 	for _, t in WorldLayout.trees() do
 		tree(greenery, t.x, t.z, t.s)
 	end
-	-- Sari-sari stores, facing the outer ring (the art direction's storefront)
+	-- Sari-sari stores (the art direction's storefront), the front 14 m across, facing the road
 	for i, s in WorldLayout.SARI_SARI do
-		local yaw = if s.face > 0 then math.pi / 2 else -math.pi / 2
-		if not art("SariSari", CFrame.new(WorldLayout.studs(s.x, s.z)) * CFrame.Angles(0, yaw, 0), town) then
-			block(town, `SariSari{i}`, 9, 6, 14, hex("f2e3c4"), s.x, 3, s.z)
-			block(town, `Awning{i}`, 3, 0.4, 15, hex("2f9e6e"), s.x + s.face * 6, 3.8, s.z)
+		local yaw = yawFacing(s.dx, s.dz)
+		local base = CFrame.new(WorldLayout.studs(s.x, s.z)) * CFrame.Angles(0, yaw, 0)
+		if not art("SariSari", base, town) then
+			local body = block(town, `SariSari{i}`, 14, 6, 9, hex("f2e3c4"), s.x, 3, s.z)
+			body.CFrame = base * CFrame.new(0, 3 * S, 0)
+			local awning = block(town, `Awning{i}`, 15, 0.4, 3, hex("2f9e6e"), s.x, 3.8, s.z)
+			awning.CFrame = base * CFrame.new(0, 3.8 * S, 6 * S)
 		end
-		sign(town, "SARI-SARI", 7, 1.6, s.x + s.face * 4.8, 5, s.z, yaw, hex("2f9e6e"), Color3.new(1, 1, 1))
+		sign(town, "SARI-SARI", 7, 1.6, s.x + s.dx * 4.6, 5, s.z + s.dz * 4.6, yaw, hex("2f9e6e"), Color3.new(1, 1, 1))
 	end
+	-- The court runs north-south: hoops at its ends
 	local c = WorldLayout.COURT
-	flat(community, "Court", 24, 14, hex("c96f3a"), c.x, c.z, LAYER.base)
-	flat(community, "CourtInner", 21, 11, hex("d98a50"), c.x, c.z, LAYER.detail)
+	flat(community, "Court", c.w, c.d, hex("c96f3a"), c.x, c.z, LAYER.base)
+	flat(community, "CourtInner", c.w - 3, c.d - 3, hex("d98a50"), c.x, c.z, LAYER.detail)
 	for _, s in { -1, 1 } do
-		block(community, "Hoop", 0.3, 4, 0.3, hex("444a55"), c.x + s * 11, 2, c.z)
-		block(community, "Backboard", 0.2, 1.3, 2.2, Color3.new(1, 1, 1), c.x + s * 10.6, 3.8, c.z)
+		block(community, "Hoop", 0.3, 4, 0.3, hex("444a55"), c.x, 2, c.z + s * (c.d / 2 - 1))
+		block(community, "Backboard", 2.2, 1.3, 0.2, Color3.new(1, 1, 1), c.x, 3.8, c.z + s * (c.d / 2 - 1.4))
 	end
 	local p = WorldLayout.POND
-	flat(community, "PondBank", 26, 18, hex("d9c79a"), p.x, p.z, LAYER.base)
-	local water = flat(community, "Pond", 24, 16, hex("3f97d6"), p.x, p.z, LAYER.detail, Enum.Material.Glass)
+	flat(community, "PondBank", p.w, p.d, hex("d9c79a"), p.x, p.z, LAYER.base)
+	local water = flat(community, "Pond", p.w - 2, p.d - 2, hex("3f97d6"), p.x, p.z, LAYER.detail, Enum.Material.Glass)
 	water.Transparency = 0.2
+	-- Pickleball runs east-west: the net across the middle
 	local k = WorldLayout.PICKLEBALL
-	flat(community, "Pickleball", 14, 26, hex("2f7d5b"), k.x, k.z, LAYER.base)
-	flat(community, "PickleballInner", 10, 20, hex("3f8fc9"), k.x, k.z, LAYER.detail)
-	block(community, "Net", 10.4, 0.8, 0.08, hex("f2f2ee"), k.x, 0.55, k.z)
+	flat(community, "Pickleball", k.w, k.d, hex("2f7d5b"), k.x, k.z, LAYER.base)
+	flat(community, "PickleballInner", k.w - 6, k.d - 4, hex("3f8fc9"), k.x, k.z, LAYER.detail)
+	block(community, "Net", 0.08, 0.8, k.d - 3.6, hex("f2f2ee"), k.x, 0.55, k.z)
 end
 
 local function buildLots()
@@ -461,31 +477,22 @@ end
 -- puts them out in a brownout.
 local function buildStreetlights()
 	local lamps = folder("Streetlights", world.TownCenter)
-	local side = WorldLayout.ROAD_W / 2 + 0.9
-	for _, ring in { WorldLayout.RING, WorldLayout.OUTER } do
-		local step = if ring == WorldLayout.RING then 24 else 42
-		for a = -ring + 12, ring - 6, step do
-			if math.abs(a) < WorldLayout.ROAD_W then
-				continue -- a junction with a spoke
-			end
-			for _, s in { -1, 1 } do
-				for _, spot in { { a, s * (ring + side), 0, -s }, { s * (ring + side), a, -s, 0 } } do
-					local x, z, ox, oz = spot[1], spot[2], spot[3], spot[4]
-					block(lamps, "Post", 0.25, 5.2, 0.25, hex("4a5058"), x, 2.6, z)
-					block(lamps, "Arm", if ox ~= 0 then 1.4 else 0.16, 0.16, if oz ~= 0 then 1.4 else 0.16, hex("4a5058"), x + ox * 0.7, 5.2, z + oz * 0.7)
-					local bulb = block(lamps, "Bulb", 0.4, 0.16, 0.4, hex("8a8f96"), x + ox * 1.3, 5.05, z + oz * 1.3)
-					bulb.CanCollide = false
-					local light = Instance.new("PointLight")
-					light.Range = 12 * S -- a 12 m pool of light
-					light.Brightness = 1.6
-					light.Color = hex("ffd9a0")
-					light.Shadows = false
-					light.Enabled = false
-					light.Parent = bulb
-					CollectionService:AddTag(bulb, "Streetlight")
-				end
-			end
-		end
+	for i, l in WorldLayout.lamps() do
+		local x, z, ox, oz = l.x, l.z, l.ox, l.oz
+		block(lamps, "Post", 0.25, 5.2, 0.25, hex("4a5058"), x, 2.6, z)
+		block(lamps, "Arm", if ox ~= 0 then 1.4 else 0.16, 0.16, if oz ~= 0 then 1.4 else 0.16, hex("4a5058"), x + ox * 0.7, 5.2, z + oz * 0.7)
+		local bulb = block(lamps, "Bulb", 0.4, 0.16, 0.4, hex("8a8f96"), x + ox * 1.3, 5.05, z + oz * 1.3)
+		bulb.CanCollide = false
+		-- Each lamp has its own switch-on moment, so the town lights up one by one at dusk
+		bulb:SetAttribute("Order", i)
+		local light = Instance.new("PointLight")
+		light.Range = 12 * S -- a 12 m pool of light
+		light.Brightness = 1.6
+		light.Color = hex("ffd9a0")
+		light.Shadows = false
+		light.Enabled = false
+		light.Parent = bulb
+		CollectionService:AddTag(bulb, "Streetlight")
 	end
 end
 
