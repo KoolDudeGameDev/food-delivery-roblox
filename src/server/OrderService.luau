@@ -13,7 +13,9 @@ local OrderTypes = require(ReplicatedStorage.Shared.Data.OrderTypes)
 local Pay = require(ReplicatedStorage.Shared.Pay)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local WorldLayout = require(ReplicatedStorage.Shared.WorldLayout)
+local Shop = require(ReplicatedStorage.Shared.Shop)
 local DataService = require(script.Parent.DataService)
+local MoveService = require(script.Parent.MoveService)
 
 local Remotes = ReplicatedStorage.Remotes
 
@@ -22,7 +24,6 @@ local OrderService = {}
 local S = Config.STUDS
 local ACCEPT_GAP = 0.25 -- s between one player's accept requests
 local REACH_SLACK = 2 -- m of slack on the hub reach, for lag
-local CARRY_ON_FOOT = 1 -- until rides arrive (milestone 4)
 
 type Order = Offers.Offer & { id: string, deadline: number, fresh: number }
 type State = {
@@ -87,6 +88,7 @@ local function push(player: Player)
 	if not (state and data) then
 		return
 	end
+	local carry = Shop.stats(data).carry
 	local offers = {}
 	for _, o in state.offers do
 		table.insert(offers, {
@@ -97,7 +99,7 @@ local function push(player: Player)
 			max = o.max,
 			food = o.food,
 			regular = (data.regulars[o.houseId] or 0) >= Config.REGULAR_VISITS,
-			problem = Offers.problem(CARRY_ON_FOOT, #state.orders, o),
+			problem = Offers.problem(carry, #state.orders, o),
 		})
 	end
 	local orders = {}
@@ -118,7 +120,11 @@ local function push(player: Player)
 		cash = data.cash,
 		delivered = data.delivered,
 		streak = data.streak,
-		carry = CARRY_ON_FOOT,
+		carry = carry,
+		homeTier = data.homeTier,
+		owned = data.owned,
+		parts = data.parts,
+		equipped = data.equipped,
 		offers = offers,
 		offersDeadline = state.offersDeadline,
 		orders = orders,
@@ -126,17 +132,14 @@ local function push(player: Player)
 	})
 end
 
+-- Parcels are heavy: carrying one slows you down.
 local function updateSpeed(player: Player)
 	local state = states[player]
-	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
-		return
-	end
 	local parcel = false
 	for _, o in if state then state.orders else {} do
 		parcel = parcel or not o.food
 	end
-	humanoid.WalkSpeed = Config.RUN * S * (if parcel then Config.PARCEL_SLOW else 1)
+	MoveService.setParcel(player, parcel)
 end
 
 local function rate(data, stars: number)
@@ -235,7 +238,7 @@ local function accept(player: Player, offerId: unknown)
 	if not offer then
 		return { ok = false, reason = "That offer is gone" }
 	end
-	local problem = Offers.problem(CARRY_ON_FOOT, #state.orders, offer)
+	local problem = Offers.problem(Shop.stats(data).carry, #state.orders, offer)
 	if problem then
 		return { ok = false, reason = problem }
 	end
@@ -330,6 +333,7 @@ function OrderService.carrying(player: Player): number
 end
 
 OrderService.updateSpeed = updateSpeed
+OrderService.push = push
 
 -- For tests and probes: the server's view of a player's carried orders and board.
 function OrderService.stateOf(player: Player)

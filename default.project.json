@@ -25,6 +25,9 @@
         },
         "State": {
           "$className": "RemoteEvent"
+        },
+        "Sprint": {
+          "$className": "RemoteEvent"
         }
       }
     },

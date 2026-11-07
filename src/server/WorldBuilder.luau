@@ -72,6 +72,22 @@ local function sign(parent: Instance, text: string, w: number, h: number, x: num
 end
 WorldBuilder.sign = sign
 
+-- An invisible spot with a prompt on it: shop doors and home lots. Separate from the
+-- building, so Toolbox art can replace the building without losing the prompt.
+local function promptSpot(parent: Instance, name: string, x: number, z: number, action: string, object: string): Part
+	local spot = block(parent, name, 1, 1, 1, Color3.new(1, 1, 1), x, 1.5, z)
+	spot.Transparency, spot.CanCollide, spot.CanQuery, spot.CanTouch = 1, false, false, false
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = name
+	prompt.ActionText = action
+	prompt.ObjectText = object
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.MaxActivationDistance = Config.SHOP_REACH * S
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = spot
+	return spot
+end
+
 -- A vetted Toolbox model for this role, placed at a pivot, or nil to fall back to graybox.
 local function art(role: string, pivot: CFrame, parent: Instance): Model?
 	local assets = ServerStorage:FindFirstChild("Assets")
@@ -185,6 +201,8 @@ local function buildHub()
 		end
 		-- The shop's front faces north (-z), towards its doorstep
 		sign(f, shop.label, 10, 2.4, shop.x, 7.8, shop.z - 5.2, math.pi, Color3.new(1, 1, 1), hex("222222"))
+		local door = promptSpot(f, if key == "dealer" then "DealerPrompt" else "MechanicPrompt", shop.x, shop.z - 8.4, "Shop", shop.label)
+		door:SetAttribute("Shop", key)
 	end
 end
 
@@ -245,9 +263,9 @@ local function buildHouse(h)
 	local step = flat(model, "Doorstep", 4, 2.2, hex("bdb8aa"), h.step.x, h.step.z, LAYER.detail)
 	step.CFrame = CFrame.new(step.Position) * CFrame.Angles(0, yaw, 0)
 
-	-- Gate parking pad on the road side: rides park here (milestone 4)
-	local px, pz = at(0, V + 3)
-	local pad = block(gameplay.VehicleSpawnPoints, `{h.id}Parking`, 0.1, 0.1, 0.1, hex("ffffff"), px, 0.1, pz)
+	-- The gate parking spot on the road side, where rides wait (RideService)
+	local spot = WorldLayout.parkingSpot(h)
+	local pad = block(gameplay.VehicleSpawnPoints, `{h.id}Parking`, 0.1, 0.1, 0.1, hex("ffffff"), spot.x, 0.1, spot.z)
 	pad.Transparency, pad.CanCollide, pad.CanQuery, pad.CanTouch = 1, false, false, false
 	pad:SetAttribute("HouseId", h.id)
 
@@ -416,6 +434,8 @@ local function buildLots()
 		local home = Instance.new("Model")
 		home.Name = "Home"
 		home.Parent = model
+		local door = promptSpot(model, "HomePrompt", lot.step.x, lot.step.z, "Home", "Upgrades and rides")
+		door:SetAttribute("LotId", lot.id)
 	end
 end
 

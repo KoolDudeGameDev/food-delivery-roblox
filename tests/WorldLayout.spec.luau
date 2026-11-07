@@ -89,6 +89,19 @@ return {
 		local c = L.CEMETERY
 		assert(L.onRoad(c.x1 + 6, (c.z0 + c.z1) / 2, 0), "the cemetery gate doesn't reach its lane")
 	end,
+	ridesParkOutsideEveryYardAndBuilding = function()
+		local L = load()
+		for _, h in L.HOUSES do
+			local spot = L.parkingSpot(h)
+			assert(L.yardAt(spot.x, spot.z) == nil, `{h.id} parks inside a yard`)
+			for _, p in L.footprints() do
+				if p.kind ~= "lot" then
+					assert(not (spot.x > p.x0 and spot.x < p.x1 and spot.z > p.z0 and spot.z < p.z1), `{h.id} parks on {p.name}`)
+				end
+			end
+			assert(math.abs(spot.x) < L.EDGE and math.abs(spot.z) < L.EDGE, `{h.id} parks off the map`)
+		end
+	end,
 	everythingIsOnTheMap = function()
 		local L = load()
 		for _, p in L.footprints() do

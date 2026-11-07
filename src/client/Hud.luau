@@ -6,6 +6,7 @@ local Hud = {}
 local gui: ScreenGui
 local cashLabel: TextLabel
 local streakLabel: TextLabel
+local staminaFill: Frame
 local ordersFrame: Frame
 local toastFrame: Frame
 local rows: { [string]: TextLabel } = {}
@@ -20,9 +21,18 @@ function Hud.mount(screen: ScreenGui)
 		AutomaticSize = Enum.AutomaticSize.XY,
 		BackgroundColor3 = Ui.PANEL,
 		BackgroundTransparency = 0.08,
-	}, { Ui.corner(), Ui.pad(10), Ui.make("UIListLayout", { Padding = UDim.new(0, 4) }) })
+	}, { Ui.corner(), Ui.pad(10), Ui.make("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }) })
 	cashLabel = Ui.label("₱0", 28, Ui.GOOD, { Parent = top, Font = Enum.Font.FredokaOne, LayoutOrder = 1 })
 	streakLabel = Ui.label("", 14, Ui.MUTED, { Parent = top, LayoutOrder = 2 })
+	-- Sprint stamina: the server runs it and publishes the player's Stamina attribute
+	local bar = Ui.make("Frame", {
+		Name = "Stamina",
+		Parent = top,
+		LayoutOrder = 2,
+		Size = UDim2.fromOffset(150, 8),
+		BackgroundColor3 = Color3.fromHex("e6e1d6"),
+	}, { Ui.corner(4) })
+	staminaFill = Ui.make("Frame", { Parent = bar, Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromHex("3f7fd6") }, { Ui.corner(4) })
 	ordersFrame = Ui.make("Frame", {
 		Name = "Orders",
 		Parent = top,
@@ -94,8 +104,12 @@ function Hud.onState(state)
 	end
 end
 
--- Every frame: the countdowns.
+-- Every frame: the countdowns and the stamina bar.
 function Hud.step(serverNow: number)
+	local player = game:GetService("Players").LocalPlayer
+	local stamina = (player:GetAttribute("Stamina") or 100) / 100
+	staminaFill.Size = UDim2.fromScale(math.clamp(stamina, 0, 1), 1)
+	staminaFill.BackgroundColor3 = if player:GetAttribute("Winded") then Ui.ACCENT else Color3.fromHex("3f7fd6")
 	for _, order in current.orders do
 		local row = rows[order.id]
 		if row then

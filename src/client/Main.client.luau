@@ -1,3 +1,4 @@
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7,6 +8,7 @@ local Board = require(script.Parent.Board)
 local Chasers = require(script.Parent.Chasers)
 local Hud = require(script.Parent.Hud)
 local Map = require(script.Parent.Map)
+local ShopPanel = require(script.Parent.ShopPanel)
 local Waypoint = require(script.Parent.Waypoint)
 
 local Remotes = ReplicatedStorage.Remotes
@@ -21,6 +23,7 @@ screen.Parent = player:WaitForChild("PlayerGui")
 Hud.mount(screen)
 Board.mount(screen)
 Map.mount(screen)
+ShopPanel.mount(screen)
 Chasers.start()
 
 local latest
@@ -29,6 +32,7 @@ Remotes.State.OnClientEvent:Connect(function(state)
 	Hud.onState(state)
 	Board.onState(state)
 	Map.onState(state)
+	ShopPanel.onState(state)
 	Waypoint.onState(state)
 end)
 Remotes.Notify.OnClientEvent:Connect(function(message)
@@ -50,10 +54,31 @@ player.CharacterAdded:Connect(function(character)
 	end
 end)
 
+-- Sprint: hold Shift (or L3), or the SPRINT button on a phone. The server spends the stamina.
+ContextActionService:BindAction("Sprint", function(_, inputState)
+	if inputState == Enum.UserInputState.Begin then
+		Remotes.Sprint:FireServer(true)
+	elseif inputState == Enum.UserInputState.End or inputState == Enum.UserInputState.Cancel then
+		Remotes.Sprint:FireServer(false)
+	end
+	return Enum.ContextActionResult.Pass
+end, true, Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift, Enum.KeyCode.ButtonL3)
+ContextActionService:SetTitle("Sprint", "SPRINT")
+ContextActionService:SetPosition("Sprint", UDim2.new(1, -170, 1, -90))
+
+-- Panels close when you walk away from where you opened them
+local openedAt: Vector3? = nil
 ProximityPromptService.PromptTriggered:Connect(function(prompt)
+	local spot = prompt.Parent
 	if prompt.Name == "BoardPrompt" then
 		Board.open()
+	else
+		local problem = ShopPanel.openFrom(prompt)
+		if problem then
+			Hud.toast(problem)
+		end
 	end
+	openedAt = if spot and spot:IsA("BasePart") then spot.Position else nil
 end)
 
 RunService.RenderStepped:Connect(function(dt)
@@ -62,9 +87,10 @@ RunService.RenderStepped:Connect(function(dt)
 	Board.step(now)
 	Map.step()
 	Chasers.step(dt, os.clock())
-	-- Walking away from the board closes it
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if Board.isOpen() and latest and root and (root.Position - latest.hub).Magnitude > 30 then
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root and openedAt and (root.Position - openedAt).Magnitude > 40 then
 		Board.close()
+		ShopPanel.close()
+		openedAt = nil
 	end
 end)

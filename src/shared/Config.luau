@@ -10,6 +10,12 @@ Config.STUDS = 3 -- studs per metre, so a default avatar is about 1.75 m tall
 Config.RUN = 6 -- m/s
 Config.SPRINT = 9.5
 Config.PARCEL_SLOW = 0.75 -- carrying a parcel slows you to this share of your speed
+Config.RIDE_SPRINT = 1.35 -- sprinting on a ride
+Config.STAMINA_DRAIN = 30 -- per second while sprinting, out of 100
+Config.STAMINA_REGEN = 18
+Config.WINDED_UNTIL = 25 -- run out, and you can't sprint again until stamina is back to this
+Config.MAX_CARRY = 4 -- orders at once (GDD §4.3)
+Config.SHOP_REACH = 8 -- m from a shop's doorstep that counts as "at the shop"
 
 -- Orders
 Config.FOOD_TIME = 8 -- s, plus travel time; see Pay.timeLimit

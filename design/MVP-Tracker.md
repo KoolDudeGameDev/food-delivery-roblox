@@ -14,7 +14,7 @@ Statuses: Not Started, In Progress, Blocked, Testing, Completed.
 | 2 | The server validates order acceptance, delivery and payment | Testing | `OrderService`: the board is in reach, the offer exists, carry is free, a rate limit; the doorstep distance and the deadline are checked on the server. Pay comes from `Pay`, with unit tests |
 | 3 | Invalid or duplicate reward requests are rejected | Testing | Bad ids, gone offers and out-of-reach requests are refused. An order is removed before it pays |
 | 4 | Chasers work in multiplayer without breaking order state | Testing | `ChaserService` runs every dog on the server with `ChaserRules`, which has unit tests (a Chihuahua catches a runner and a Great Dane doesn't; dogs stay in their yard; bites wait 1.2 s; jumping clears small dogs). A bite hurts carried orders (fragile ones twice as much) and ends the streak. Each player's screen glides the dogs to the server's positions. Needs a 2-player playtest |
-| 5 | Players can buy and visibly equip upgrades | Not Started | Milestone 4 |
+| 5 | Players can buy and visibly equip upgrades | Testing | Dealer (6 rides, bought in order), mechanic (parts that change the model, speed and carry, up to 4 orders), home (house ladder, ride choice). `ShopService` checks you're at the right place, then `Shop` (unit tested) decides. Rides weld under you, park at the gate when you enter a yard, and come back when you leave. Sprint runs on a server stamina bar. Needs a playtest, including another player seeing your ride |
 | 6 | Home and progression data persist across sessions | In Progress | ProfileStore saves cash, deliveries, ratings, streak, regulars and home tier, with a check on load. Not yet tested with a live DataStore |
 | 7 | Concurrent sessions cannot duplicate progression | In Progress | ProfileStore's session lock is in place. Not yet tested across two servers |
 | 8 | Multiple players can use the same server reliably | Testing | Each player gets a lot and their own board. Needs a 2-player Studio test |
@@ -27,8 +27,9 @@ Statuses: Not Started, In Progress, Blocked, Testing, Completed.
 | --- | --- | --- |
 | 1. Concept validation and game design | Completed | GDD v1.0 and World Layout Blueprint v0.1 |
 | 2. Technical foundation and architecture | Testing | Rojo, Rokit, remotes, ProfileStore, shared rules with tests, the Blueprint §15 hierarchy |
-| 3. Core gameplay | In Progress | The delivery loop, chasers, and a minimap and town map are built. Gate auto-park waits for rides (phase 4) |
-| 4–9 | Not Started | |
+| 3. Core gameplay | Testing | The delivery loop, chasers, and a minimap and town map are built |
+| 4. Progression and economy | In Progress | Rides, parts, gate parking, sprint, the dealer, mechanic and home shops. Paint, garden decor, daily goals and the economy balance pass are still to do |
+| 5–9 | Not Started | |
 
 ## Open decisions (GDD §16, Blueprint §17)
 
@@ -47,9 +48,13 @@ value to tune:
 - Footprint (Blueprint §17, question 7) is about 500 x 500 m, provisional until the graybox
   playtest. The town core is the prototype's; houses split 7 inner / 7 outer / 7 rural; a dirt
   loop runs through the rural outskirts.
-- The warehouse stays at the map's centre (question 1).
+- The warehouse hub is off-centre, in its own paved yard in the north-east block of the crossroads,
+  so both spokes run through the middle (question 1).
 - The cemetery is on the south-west edge, reached down a quiet side road, and can't be seen from
   the hub (question 2).
 - The rural outskirts are in the first release (question 3), and the lots are spread round town
   (question 4).
 - The north-south spoke runs on to the map edge as a reserved corridor, closed with a barrier.
+- Acceleration parts. The prototype's tighter laces, bigger deck and wider tyres only improved
+  acceleration. Roblox walking has no acceleration setting, so these parts aren't sold until
+  acceleration is modelled.

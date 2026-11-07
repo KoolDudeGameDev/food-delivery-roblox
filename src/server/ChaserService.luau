@@ -10,6 +10,7 @@ local ChaserRules = require(ReplicatedStorage.Shared.ChaserRules)
 local Config = require(ReplicatedStorage.Shared.Config)
 local DogBreeds = require(ReplicatedStorage.Shared.Data.DogBreeds)
 local WorldLayout = require(ReplicatedStorage.Shared.WorldLayout)
+local MoveService = require(script.Parent.MoveService)
 local OrderService = require(script.Parent.OrderService)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 
@@ -115,7 +116,6 @@ local function bite(player: Player, entry: Entry)
 	local carrying = OrderService.carrying(player) > 0
 	OrderService.hurt(player, kind.damage)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 	local away = Vector3.new(0, 0, 1)
 	if root then
 		local flat = Vector3.new(root.Position.X - entry.dog.x * S, 0, root.Position.Z - entry.dog.z * S)
@@ -126,10 +126,7 @@ local function bite(player: Player, entry: Entry)
 		text = if carrying then `{entry.breed.name} bit you! -{kind.damage}%` else `{entry.breed.name} bit you!`,
 		knock = away * kind.knock * S + Vector3.new(0, 4 * S, 0),
 	})
-	if humanoid then
-		humanoid.WalkSpeed = 0
-		task.delay(kind.stun, OrderService.updateSpeed, player)
-	end
+	MoveService.stun(player, kind.stun)
 end
 
 local function tick()

@@ -1,6 +1,7 @@
 -- What a player's save holds, its defaults, and the check every save gets when it loads
 -- (GDD §13.4). A new saved field needs a default here and a check in sanitize.
 local Homes = require(script.Parent.Data.Homes)
+local Vehicles = require(script.Parent.Data.Vehicles)
 local WorldLayout = require(script.Parent.WorldLayout)
 
 local PlayerData = {}
@@ -16,6 +17,9 @@ export type Data = {
 	ratingCount: number,
 	streak: number,
 	regulars: { [string]: number }, -- deliveries per house id
+	owned: { [string]: boolean }, -- rides by key
+	parts: { [string]: { [string]: number } }, -- part levels, by ride then part
+	equipped: string, -- a ride key, or "" on foot
 }
 
 function PlayerData.template(): Data
@@ -28,6 +32,9 @@ function PlayerData.template(): Data
 		ratingCount = 0,
 		streak = 0,
 		regulars = {},
+		owned = {},
+		parts = {},
+		equipped = "",
 	}
 end
 
@@ -54,6 +61,24 @@ function PlayerData.sanitize(data: Data): Data
 		end
 	end
 	data.regulars = regulars
+	-- Rides: only real ones, part levels within their price list, and the ride in use owned
+	local owned, parts = {}, {}
+	for _, v in Vehicles.list do
+		if type(data.owned) == "table" and data.owned[v.key] == true then
+			owned[v.key] = true
+			local saved = type(data.parts) == "table" and type(data.parts[v.key]) == "table" and data.parts[v.key] or {}
+			local levels = {}
+			for _, p in v.parts do
+				local lv = math.min(count(saved[p.key]), #p.prices)
+				if lv > 0 then
+					levels[p.key] = lv
+				end
+			end
+			parts[v.key] = levels
+		end
+	end
+	data.owned, data.parts = owned, parts
+	data.equipped = if type(data.equipped) == "string" and owned[data.equipped] then data.equipped else ""
 	data.version = PlayerData.VERSION
 	return data
 end

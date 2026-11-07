@@ -48,6 +48,18 @@ return {
 		assert(d.regulars.red == 3 and d.regulars.green == 2)
 		assert(d.regulars.atlantis == nil and d.regulars.blue == nil)
 	end,
+	sanitizeKeepsOnlyRealRidesAndLevels = function()
+		local PlayerData = load()
+		local d = PlayerData.template()
+		d.owned = { bicycle = true, hoverboard = true, moped = "yes" }
+		d.parts = { bicycle = { tires = 9, basket = 1, rocket = 3 }, hoverboard = { jets = 1 } }
+		d.equipped = "moped"
+		PlayerData.sanitize(d)
+		assert(d.owned.bicycle and not d.owned.hoverboard and not d.owned.moped)
+		assert(d.parts.bicycle.tires == 3, "level capped at the last price")
+		assert(d.parts.bicycle.basket == 1 and d.parts.bicycle.rocket == nil and d.parts.hoverboard == nil)
+		assert(d.equipped == "", "riding something not owned")
+	end,
 	sanitizeKeepsGoodData = function()
 		local PlayerData = load()
 		local d = PlayerData.template()

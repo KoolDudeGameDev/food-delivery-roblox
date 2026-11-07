@@ -350,6 +350,26 @@ function WorldLayout.trees(): { { x: number, z: number, s: number } }
 	return list
 end
 
+-- Where a ride parks for a delivery place: just outside its gate, on the road side.
+function WorldLayout.parkingSpot(h: House): { x: number, z: number }
+	if h.id == "cemetery" then
+		return { x = CEM.x1 + 3, z = (CEM.z0 + CEM.z1) / 2 }
+	end
+	local x, z = frame(h)(WorldLayout.GATE + 2, WorldLayout.HOUSE_SIZES[h.size].yardV + 3)
+	return { x = x, z = z }
+end
+
+-- The delivery place whose yard a point is in, if any.
+function WorldLayout.yardAt(x: number, z: number): House?
+	for _, h in WorldLayout.HOUSES do
+		local y = h.yard
+		if x > y.x0 and x < y.x1 and z > y.z0 and z < y.z1 then
+			return h
+		end
+	end
+	return nil
+end
+
 -- A point in metres as a world position in studs.
 function WorldLayout.studs(x: number, z: number, y: number?): Vector3
 	local s = Config.STUDS
