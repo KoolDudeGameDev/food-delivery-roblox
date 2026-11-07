@@ -121,6 +121,7 @@ local function push(player: Player)
 		delivered = data.delivered,
 		streak = data.streak,
 		carry = carry,
+		rating = if data.ratingCount > 0 then data.ratingSum / data.ratingCount else nil,
 		homeTier = data.homeTier,
 		owned = data.owned,
 		parts = data.parts,

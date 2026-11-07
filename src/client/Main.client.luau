@@ -18,6 +18,9 @@ local screen = Instance.new("ScreenGui")
 screen.Name = "DeliveryUI"
 screen.ResetOnSpawn = false
 screen.IgnoreGuiInset = false
+-- Children always draw over their parent. A script-made ScreenGui defaults to Global, where a
+-- panel with a high ZIndex hides its own buttons (the empty shop panel)
+screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screen.Parent = player:WaitForChild("PlayerGui")
 
 Hud.mount(screen)

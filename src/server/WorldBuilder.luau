@@ -106,8 +106,8 @@ local function yawFacing(dx: number, dz: number): number
 	return math.atan2(dx, dz) -- turns +z to point along (dx, dz)
 end
 
--- Flat ground pieces stack in layers a clear 0.25 studs apart (tops, in studs), and pieces that
--- overlap are untextured, so nothing flickers as the camera moves.
+-- Flat ground pieces stack in layers a clear 0.25 studs apart (tops, in studs), and nothing flat
+-- is textured, so nothing flickers as the camera moves.
 local LAYER = { base = 0.25, detail = 0.5, sidewalk = 0.75, road = 1.0 }
 
 local function flat(parent: Instance, name: string, w: number, d: number, color: Color3, x: number, z: number, top: number, material: Enum.Material?): Part
@@ -119,16 +119,14 @@ end
 
 local function buildGround()
 	local edge = WorldLayout.EDGE
-	-- Terrain grass, not one huge textured part: it shades and tiles cleanly at a distance
-	local terrain = workspace.Terrain
-	terrain:Clear()
-	terrain:SetMaterialColor(Enum.Material.Grass, hex("6fc46a"))
-	local size = (edge * 2 + 40) * S
-	terrain:FillBlock(CFrame.new(0, -2, 0), Vector3.new(size, 4, size), Enum.Material.Grass)
+	-- One flat, untextured green: the low-poly look, with nothing to shimmer. (Terrain grass
+	-- grew animated blades over the whole town.)
+	workspace.Terrain:Clear()
+	block(world, "Ground", edge * 2 + 40, 1, edge * 2 + 40, hex("6fc46a"), 0, -0.5, 0)
 	-- A hedge round the map
 	for _, s in { -1, 1 } do
-		block(world, "Hedge", edge * 2 + 4, 4, 2, hex("3e8c4a"), 0, 2, s * (edge + 1), Enum.Material.Grass)
-		block(world, "Hedge", 2, 4, edge * 2 + 4, hex("3e8c4a"), s * (edge + 1), 2, 0, Enum.Material.Grass)
+		block(world, "Hedge", edge * 2 + 4, 4, 2, hex("3e8c4a"), 0, 2, s * (edge + 1))
+		block(world, "Hedge", 2, 4, edge * 2 + 4, hex("3e8c4a"), s * (edge + 1), 2, 0)
 	end
 end
 
@@ -335,8 +333,8 @@ local function tree(parent: Instance, x: number, z: number, s: number)
 	if art("Tree", CFrame.new(WorldLayout.studs(x, z)) * CFrame.Angles(0, x % 6.28, 0), parent) then
 		return
 	end
-	block(parent, "Trunk", 0.5 * s, 3 * s, 0.5 * s, hex("7a5a3c"), x, 1.5 * s, z, Enum.Material.Wood)
-	local crown = block(parent, "Crown", 3.2 * s, 2.6 * s, 3.2 * s, hex("3f9a52"), x, 3.8 * s, z, Enum.Material.Grass)
+	block(parent, "Trunk", 0.5 * s, 3 * s, 0.5 * s, hex("7a5a3c"), x, 1.5 * s, z)
+	local crown = block(parent, "Crown", 3.2 * s, 2.6 * s, 3.2 * s, hex("3f9a52"), x, 3.8 * s, z)
 	crown.Shape = Enum.PartType.Ball
 	crown.CastShadow = true
 end
