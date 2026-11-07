@@ -100,6 +100,18 @@ return {
 		end
 		assert(n == 4, `{n} community footprints`)
 	end,
+	polesStandClearInRuns = function()
+		local L = load()
+		local n = 0
+		for _, run in L.poles() do
+			assert(#run >= 2, "a run of one pole")
+			for _, pole in run do
+				n += 1
+				assert(not L.blocked(pole.x, pole.z, 0.8), "a pole is in the way")
+			end
+		end
+		assert(n > 12, `only {n} poles`)
+	end,
 	lampsStayOnTheSidewalks = function()
 		local L = load()
 		local lamps = L.lamps()

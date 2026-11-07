@@ -212,6 +212,13 @@ local function buildHub()
 	end
 end
 
+-- Fence styles by house size (Blueprint §7.2)
+local FENCES = {
+	small = { height = 1.4, color = hex("c9a96b"), material = Enum.Material.Wood },
+	medium = { height = 2, color = hex("f3efe4"), material = Enum.Material.SmoothPlastic },
+	large = { height = 2.6, color = hex("b8b4aa"), material = Enum.Material.Concrete },
+}
+
 local function buildHouse(h)
 	local at = WorldLayout.frame(h)
 	local geo = WorldLayout.houseGeometry(h)
@@ -224,20 +231,21 @@ local function buildHouse(h)
 	local yaw = yawFacing(h.dx, h.dz)
 
 	-- A straight piece between two yard points, u and v in the house's frame
-	local function piece(name, u0, v0, u1, v1, height, color)
+	local function piece(name, u0, v0, u1, v1, height, color, material)
 		local ax, az = at(u0, v0)
 		local bx, bz = at(u1, v1)
 		local w, d = math.max(math.abs(bx - ax), 0.4), math.max(math.abs(bz - az), 0.4)
-		return block(model, name, w, height, d, color, (ax + bx) / 2, height / 2, (az + bz) / 2)
+		return block(model, name, w, height, d, color, (ax + bx) / 2, height / 2, (az + bz) / 2, material)
 	end
 
-	-- Fence round the yard, with the gate gap facing the road
-	local white = hex("f3efe4")
-	piece("FenceBack", -U, -V, U, -V, 2, white)
-	piece("FenceLeft", -U, -V, -U, V, 2, white)
-	piece("FenceRight", U, -V, U, V, 2, white)
-	piece("FenceFrontLeft", -U, V, -GATE, V, 2, white)
-	piece("FenceFrontRight", GATE, V, U, V, 2, white)
+	-- The fence says what kind of house it is (Blueprint §7.2): a low bamboo fence round a small
+	-- house, a white picket round a medium one, a tall wall round a large one
+	local style = FENCES[h.size]
+	piece("FenceBack", -U, -V, U, -V, style.height, style.color, style.material)
+	piece("FenceLeft", -U, -V, -U, V, style.height, style.color, style.material)
+	piece("FenceRight", U, -V, U, V, style.height, style.color, style.material)
+	piece("FenceFrontLeft", -U, V, -GATE, V, style.height, style.color, style.material)
+	piece("FenceFrontRight", GATE, V, U, V, style.height, style.color, style.material)
 	for _, s in { -1, 1 } do
 		local x, z = at(s * GATE, V)
 		block(model, "GatePost", 0.6, 4, 0.6, h.color, x, 2, z)
@@ -259,7 +267,31 @@ local function buildHouse(h)
 		local dx, dz = at(0, geo.doorV)
 		local door = block(model, "Door", 2, 3.4, 0.3, hex("5a3a28"), dx, 1.7, dz)
 		door.CFrame = CFrame.new(door.Position) * CFrame.Angles(0, yaw, 0)
+		-- Windows on the front, a row per floor: lit at night, dark in a brownout (WorldService)
+		for f = 0, size.floors - 1 do
+			for _, u in { -size.w / 4, size.w / 4 } do
+				local wx, wz = at(u, geo.doorV + 0.05)
+				local window = block(model, "Window", 1.8, 1.2, 0.1, hex("7fa6c9"), wx, f * size.h + size.h * 0.6, wz)
+				window.CFrame = CFrame.new(window.Position) * CFrame.Angles(0, yaw, 0)
+				window.CanCollide = false
+				CollectionService:AddTag(window, "Window")
+			end
+		end
 	end
+	-- Flower beds either side of the front path, and a potted plant by the gate
+	for _, u in { -4.5, 4.5 } do
+		local fx, fz = at(u, geo.doorV + 1.4)
+		local bed = block(model, "FlowerBed", 2.4, 0.4, 0.9, hex("5a3f2a"), fx, 0.2, fz)
+		bed.CFrame = CFrame.new(bed.Position) * CFrame.Angles(0, yaw, 0)
+		bed.CanCollide = false
+		local bloom = block(model, "Flowers", 2.2, 0.3, 0.7, h.color:Lerp(Color3.new(1, 1, 1), 0.25), fx, 0.55, fz)
+		bloom.CFrame = CFrame.new(bloom.Position) * CFrame.Angles(0, yaw, 0)
+		bloom.CanCollide = false
+	end
+	local px, pz = at(U - 2, V - 2)
+	block(model, "Pot", 0.7, 0.6, 0.7, hex("b5653d"), px, 0.3, pz).CanCollide = false
+	local leaves = block(model, "PotPlant", 1, 1, 1, hex("3f9a52"), px, 1, pz)
+	leaves.Shape, leaves.CanCollide = Enum.PartType.Ball, false
 
 	-- Path from the road through the gate, and the doorstep
 	local p0x, p0z = at(0, geo.doorV + 2.4)
@@ -326,6 +358,16 @@ local function buildCemetery()
 			local h = 0.7 + (n % 3) * 0.6
 			at("Tomb", 1.7, h, 2.6, paint[n % #paint + 1], tx, h / 2, tz)
 			at("Cross", 0.2, 1.4, 0.2, Color3.new(1, 1, 1), tx, h + 0.7, tz - 1.1)
+			-- Candles lit at night and all through Undas (WorldService), and flowers for the dead
+			for _, ox in { -0.4, 0.4 } do
+				local candle = at("Candle", 0.14, 0.32, 0.14, hex("fff4d8"), tx + ox, h + 0.16, tz + 0.9)
+				candle.CanCollide = false
+				CollectionService:AddTag(candle, "Candle")
+			end
+			if n % 2 == 0 then
+				at("FlowerPot", 0.34, 0.3, 0.34, hex("b7b2a6"), tx + 1.1, 0.15, tz + 1)
+				at("Flowers", 0.38, 0.3, 0.38, ({ hex("e0443a"), hex("ffd23f"), hex("e77fb3") })[n % 3 + 1], tx + 1.1, 0.45, tz + 1)
+			end
 		end
 	end
 	-- The grave that takes parcels
@@ -336,15 +378,29 @@ local function buildCemetery()
 	end
 end
 
--- A graybox tree: a trunk and a crown. Toolbox trees replace it through art("Tree").
-local function tree(parent: Instance, x: number, z: number, s: number)
-	if art("Tree", CFrame.new(WorldLayout.studs(x, z)) * CFrame.Angles(0, x % 6.28, 0), parent) then
+-- Graybox plants: a palm (town), a broadleaf tree (country) or a shrub. Toolbox models replace
+-- them through art("Palm"), art("Tree") and art("Shrub").
+local function tree(parent: Instance, x: number, z: number, s: number, kind: string)
+	local role = if kind == "palm" then "Palm" elseif kind == "shrub" then "Shrub" else "Tree"
+	if art(role, CFrame.new(WorldLayout.studs(x, z)) * CFrame.Angles(0, x % 6.28, 0), parent) then
+		return
+	end
+	if kind == "shrub" then
+		local bush = block(parent, "Shrub", 1.6 * s, 1.1 * s, 1.6 * s, hex("4a9e4f"), x, 0.5 * s, z)
+		bush.Shape = Enum.PartType.Ball
+		return
+	elseif kind == "palm" then
+		block(parent, "Trunk", 0.35 * s, 6 * s, 0.35 * s, hex("9a7a52"), x, 3 * s, z)
+		for i = 0, 4 do
+			local frond = block(parent, "Frond", 0.7 * s, 0.12, 3 * s, hex("4caf50"), x, 6 * s, z)
+			frond.CFrame = CFrame.new(frond.Position) * CFrame.Angles(0, i * math.pi * 2 / 5, 0) * CFrame.new(0, 0, 1.2 * s * S) * CFrame.Angles(math.rad(-25), 0, 0)
+			frond.CanCollide = false
+		end
 		return
 	end
 	block(parent, "Trunk", 0.5 * s, 3 * s, 0.5 * s, hex("7a5a3c"), x, 1.5 * s, z)
 	local crown = block(parent, "Crown", 3.2 * s, 2.6 * s, 3.2 * s, hex("3f9a52"), x, 3.8 * s, z)
 	crown.Shape = Enum.PartType.Ball
-	crown.CastShadow = true
 end
 
 -- The palengke: stalls with coloured canopies along the north spoke, bunting across the road.
@@ -399,7 +455,7 @@ local function buildScenery()
 	buildMarket()
 	local greenery = folder("Trees", world.RuralOutskirts)
 	for _, t in WorldLayout.trees() do
-		tree(greenery, t.x, t.z, t.s)
+		tree(greenery, t.x, t.z, t.s, t.kind)
 	end
 	-- Sari-sari stores (the art direction's storefront), the front 14 m across, facing the road
 	for i, s in WorldLayout.SARI_SARI do
@@ -440,6 +496,25 @@ local function buildLots()
 		model:SetAttribute("District", lot.district)
 		model.Parent = gameplay.HomeLots
 		flat(model, "Plot", lot.w, lot.d, hex("b9a27a"), lot.x, lot.z, LAYER.base)
+		-- A low border fence with a gap at the front, so a home lot reads as somebody's (Blueprint §8)
+		local x0, x1, z0, z1 = lot.x - lot.w / 2, lot.x + lot.w / 2, lot.z - lot.d / 2, lot.z + lot.d / 2
+		local edges = {
+			{ x0, z0, x1, z0, lot.dz == -1 },
+			{ x0, z1, x1, z1, lot.dz == 1 },
+			{ x0, z0, x0, z1, lot.dx == -1 },
+			{ x1, z0, x1, z1, lot.dx == 1 },
+		}
+		for _, e in edges do
+			local ax, az, bx, bz, front = e[1], e[2], e[3], e[4], e[5]
+			local spans = if front
+				then { { 0, 0.5 - 4 / math.max(math.abs(bx - ax), math.abs(bz - az)) }, { 0.5 + 4 / math.max(math.abs(bx - ax), math.abs(bz - az)), 1 } }
+				else { { 0, 1 } }
+			for _, sp in spans do
+				local sx, sz = ax + (bx - ax) * sp[1], az + (bz - az) * sp[1]
+				local ex, ez = ax + (bx - ax) * sp[2], az + (bz - az) * sp[2]
+				block(model, "LotFence", math.max(math.abs(ex - sx), 0.25), 0.9, math.max(math.abs(ez - sz), 0.25), hex("c9a96b"), (sx + ex) / 2, 0.45, (sz + ez) / 2, Enum.Material.Wood)
+			end
+		end
 		-- Owner sign beside the front; LotService writes the name on it
 		local sx, sz = lot.x + lot.dx * 9 + lot.dz * 6, lot.z + lot.dz * 9 - lot.dx * 6
 		block(model, "SignPost", 0.25, 2.4, 0.25, hex("7a5a3c"), sx, 1.2, sz)
@@ -533,6 +608,64 @@ local function buildEventProps()
 	end
 end
 
+-- A part placed in a frame (metres): for props built round their own centre and turn.
+local function placed(parent: Instance, name: string, frame: CFrame, w: number, h: number, d: number, color: Color3, ox: number, oy: number, oz: number): Part
+	local p = block(parent, name, w, h, d, color, 0, 0, 0)
+	p.CFrame = frame * CFrame.new(ox * S, oy * S, oz * S)
+	return p
+end
+
+-- The roadside kit (Blueprint §10.1): waiting sheds, benches, bins, crop fields, and utility
+-- poles with their wires. Each has an art() role for the Toolbox pass.
+local function buildProps()
+	local kit = folder("Props", world.TownCenter)
+	for _, p in WorldLayout.PROPS do
+		local frame = CFrame.new(WorldLayout.studs(p.x, p.z)) * CFrame.Angles(0, p.yaw, 0)
+		local role = if p.kind == "shed" then "WaitingShed" elseif p.kind == "bench" then "Bench" else "Bin"
+		if art(role, frame, kit) then
+			continue
+		end
+		if p.kind == "shed" then
+			for _, c in { { -1.8, -1 }, { 1.8, -1 }, { -1.8, 1 }, { 1.8, 1 } } do
+				placed(kit, "ShedPost", frame, 0.15, 2.6, 0.15, hex("6a6f78"), c[1], 1.3, c[2])
+			end
+			placed(kit, "ShedRoof", frame, 4.4, 0.15, 2.9, hex("2f9e6e"), 0, 2.7, 0)
+			placed(kit, "ShedBench", frame, 3.4, 0.12, 0.6, hex("8a6a4a"), 0, 0.5, -0.8)
+			placed(kit, "ShedBack", frame, 4, 1.2, 0.1, hex("e8e2d0"), 0, 1.2, -1.2)
+		elseif p.kind == "bench" then
+			placed(kit, "BenchSeat", frame, 2, 0.12, 0.6, hex("8a6a4a"), 0, 0.5, 0)
+			placed(kit, "BenchBack", frame, 2, 0.5, 0.1, hex("8a6a4a"), 0, 0.85, -0.28)
+			for _, x in { -0.85, 0.85 } do
+				placed(kit, "BenchLeg", frame, 0.1, 0.5, 0.5, hex("4a5058"), x, 0.25, 0)
+			end
+		else
+			placed(kit, "Bin", frame, 0.6, 0.9, 0.6, hex("2f7d5b"), 0, 0.45, 0)
+		end
+	end
+	local fields = folder("Fields", world.RuralOutskirts)
+	for _, f in WorldLayout.FIELDS do
+		flat(fields, "Earth", f.w, f.d, hex("8a6a48"), f.x, f.z, LAYER.base)
+		for x = f.x - f.w / 2 + 1.5, f.x + f.w / 2 - 1, 2.5 do
+			flat(fields, "CropRow", 1.2, f.d - 2, hex("6fbf4a"), x, f.z, LAYER.detail)
+		end
+	end
+	local wires = folder("UtilityPoles", world.TownCenter)
+	for _, run in WorldLayout.poles() do
+		for i, pole in run do
+			block(wires, "Pole", 0.3, 8, 0.3, hex("7a6a58"), pole.x, 4, pole.z, Enum.Material.Wood)
+			block(wires, "CrossArm", 1.8, 0.15, 0.15, hex("7a6a58"), pole.x, 7.6, pole.z, Enum.Material.Wood)
+			local nextPole = run[i + 1]
+			if nextPole then
+				local a, b = WorldLayout.studs(pole.x, pole.z, 7.5), WorldLayout.studs(nextPole.x, nextPole.z, 7.5)
+				local wire = block(wires, "Wire", 0.04, 0.04, 0.04, hex("222222"), 0, 0, 0)
+				wire.Size = Vector3.new(0.12, 0.12, (b - a).Magnitude)
+				wire.CFrame = CFrame.lookAt((a + b) / 2 - Vector3.new(0, 0.6, 0), b - Vector3.new(0, 0.6, 0))
+				wire.CanCollide = false
+			end
+		end
+	end
+end
+
 function WorldBuilder.build()
 	clearTemplate()
 	world = folder("World", workspace)
@@ -559,6 +692,7 @@ function WorldBuilder.build()
 	buildLots()
 	buildStreetlights()
 	buildEventProps()
+	buildProps()
 end
 
 return WorldBuilder

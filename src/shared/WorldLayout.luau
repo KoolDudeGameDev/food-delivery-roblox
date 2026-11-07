@@ -236,6 +236,27 @@ WorldLayout.PICKLEBALL = { x = -92, z = 40, w = 26, d = 14 }
 -- The palengke: market stalls on both sidewalks of the north spoke, with bunting overhead.
 WorldLayout.MARKET = { z0 = -108, z1 = -48, step = 10, x = 9, w = 4, d = 5 }
 
+-- Roadside props (Blueprint §10.1): waiting sheds at junctions, benches and bins where people
+-- gather. yaw is the way the prop faces; w and d are its footprint before turning.
+WorldLayout.PROPS = {
+	{ kind = "shed", x = 12, z = -127.5, w = 4, d = 2.5, yaw = 0 },
+	{ kind = "shed", x = -12, z = 127, w = 4, d = 2.5, yaw = math.pi },
+	{ kind = "shed", x = 126.75, z = 30, w = 4, d = 2.5, yaw = -math.pi / 2 },
+	{ kind = "bench", x = -15, z = -100, w = 2, d = 0.8, yaw = math.pi / 2 },
+	{ kind = "bin", x = -15, z = -103.5, w = 0.8, d = 0.8, yaw = 0 },
+	{ kind = "bench", x = -80, z = 11, w = 2, d = 0.8, yaw = 0 },
+	{ kind = "bin", x = -77, z = 11, w = 0.8, d = 0.8, yaw = 0 },
+	{ kind = "bench", x = 25, z = -8.5, w = 2, d = 0.8, yaw = 0 },
+	{ kind = "bin", x = 28, z = -8.5, w = 0.8, d = 0.8, yaw = 0 },
+}
+
+-- Crop fields in the rural outskirts (Blueprint §3.1 F): rows of green on brown earth.
+WorldLayout.FIELDS = {
+	{ x = 170, z = 135, w = 26, d = 20 },
+	{ x = -170, z = -150, w = 26, d = 20 },
+	{ x = 165, z = -160, w = 24, d = 20 },
+}
+
 -- The Blueprint's districts (§3.1). Houses take theirs from their ring and side of town.
 function WorldLayout.districtAt(x: number, z: number): string
 	if math.max(math.abs(x), math.abs(z)) > OUTER + 6 then
@@ -335,6 +356,13 @@ function WorldLayout.footprints(): { Footprint }
 	for i, g in WorldLayout.SIGNS do
 		table.insert(list, rect(`Sign{i}`, "prop", "", g.x, g.z, 1, 1))
 	end
+	for i, p in WorldLayout.PROPS do
+		local size = math.max(p.w, p.d) -- turned either way, it fits in this square
+		table.insert(list, rect(`{p.kind}{i}`, "prop", "", p.x, p.z, size, size))
+	end
+	for i, f in WorldLayout.FIELDS do
+		table.insert(list, rect(`Field{i}`, "ground", "RuralOutskirts", f.x, f.z, f.w, f.d))
+	end
 	local m = WorldLayout.MARKET
 	for z = m.z0, m.z1, m.step do
 		for _, s in { -1, 1 } do
@@ -370,8 +398,9 @@ function WorldLayout.blocked(x: number, z: number, margin: number, footprints: {
 	return false
 end
 
--- Trees in the open ground, seeded so the town is the same every time.
-function WorldLayout.trees(): { { x: number, z: number, s: number } }
+-- Trees and shrubs in the open ground, seeded so the town is the same every time: palms in town,
+-- broadleaf trees out in the country (Blueprint §10.1), and shrubs round the residential streets.
+function WorldLayout.trees(): { { x: number, z: number, s: number, kind: string } }
 	local rng = Random.new(20261107)
 	local prints, list = WorldLayout.footprints(), {}
 	for _ = 1, 4000 do
@@ -390,11 +419,57 @@ function WorldLayout.trees(): { { x: number, z: number, s: number } }
 				end
 			end
 			if clear then
-				table.insert(list, { x = x, z = z, s = rng:NextNumber(0.85, 1.45) })
+				table.insert(list, { x = x, z = z, s = rng:NextNumber(0.85, 1.45), kind = if rural then "broadleaf" else "palm" })
+			end
+		end
+	end
+	local shrubs = 0
+	for _ = 1, 3000 do
+		if shrubs >= 70 then
+			break
+		end
+		local x, z = rng:NextNumber(-OUTER, OUTER), rng:NextNumber(-OUTER, OUTER)
+		if not WorldLayout.blocked(x, z, 3, prints) then
+			local clear = true
+			for _, t in list do
+				if (t.x - x) ^ 2 + (t.z - z) ^ 2 < 16 then
+					clear = false
+					break
+				end
+			end
+			if clear then
+				shrubs += 1
+				table.insert(list, { x = x, z = z, s = rng:NextNumber(0.8, 1.2), kind = "shrub" })
 			end
 		end
 	end
 	return list
+end
+
+-- Utility poles just outside the outer ring, in runs along each side, wired pole to pole
+-- (Blueprint §10.1). A spot on a junction or anything built is skipped, which breaks the run.
+function WorldLayout.poles(): { { { x: number, z: number } } }
+	local prints, runs = WorldLayout.footprints(), {}
+	local off = OUTER + 8
+	for _, side in { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } } do
+		local run = {}
+		for a = -OUTER, OUTER, 30 do
+			local x = if side[1] ~= 0 then side[1] * off else a
+			local z = if side[2] ~= 0 then side[2] * off else a
+			if WorldLayout.blocked(x, z, 0.8, prints) then
+				if #run > 1 then
+					table.insert(runs, run)
+				end
+				run = {}
+			else
+				table.insert(run, { x = x, z = z })
+			end
+		end
+		if #run > 1 then
+			table.insert(runs, run)
+		end
+	end
+	return runs
 end
 
 -- Street lamps along both rings (the prototype's spacing), on the sidewalk, with an arm over
