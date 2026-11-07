@@ -59,9 +59,9 @@ r:Destroy(); print(ok and res or ("runner error: " .. tostring(res)))
 
 | Path | What |
 | --- | --- |
-| `src/shared/` | Rules and data both sides read: `Config`, `Pay`, `Offers`, `Shop`, `ChaserRules`, `PlayerData`, `WorldLayout`, `Data/*` |
-| `src/server/` | Everything that decides money or state: `WorldBuilder`, `DataService` (ProfileStore), `LotService`, `OrderService`, `ChaserService`, `MoveService`, `RideService`, `ShopService` |
-| `src/client/` | Input, screens and effects: `Hud`, `Board`, `Map`, `ShopPanel`, `Waypoint`, `Chasers` |
+| `src/shared/` | Rules and data both sides read: `Config`, `Pay`, `Offers`, `Shop`, `ChaserRules`, `Goals`, `WorldClock`, `PlayerData`, `WorldLayout`, `Data/*` |
+| `src/server/` | Everything that decides money or state: `WorldBuilder`, `DataService` (ProfileStore), `LotService`, `OrderService`, `GateService`, `ChaserService`, `MoveService`, `RideService`, `ShopService`, `WorldService` |
+| `src/client/` | Input, screens and effects: `Hud`, `Board`, `Map`, `ShopPanel`, `Waypoint`, `Chasers`, `Gates`, `Conveyor`, `Grip`, `Riding`, `Lights`, `Weather` |
 | `tests/` | `*.spec.luau` specs and the `Runner` |
 
 **Rule:** the server decides money. The client only asks ("accept this offer") and never says
