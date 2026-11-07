@@ -15,7 +15,7 @@ local WorldService = {}
 local weather = { rain = false, brownout = false, festival = "" }
 local timers = { rain = 0, brownout = 0, festival = 0 }
 local left = { rain = 0, brownout = 0, festival = 0 }
-local lit: boolean? = nil
+local sinceLights = 0
 local clock = Config.START_TIME
 local sinceWrite = 0
 local rng = Random.new()
@@ -36,19 +36,60 @@ function WorldService.weather(): WorldClock.Weather
 	return { rain = weather.rain, festival = weather.festival }
 end
 
-local function setLamps(on: boolean)
-	if lit == on then
+-- Lights that tell the time (Blueprint §11). Each lamp and window has its own moment, so the
+-- town lights up one by one through the half hour after 17:30 and goes out the same way after
+-- dawn. A brownout flickers the lamps three times, then cuts them and the windows. Candles burn
+-- at night and all through Undas, brownout or not.
+local LAMP_ON, LAMP_OFF = Color3.fromHex("ffe2a8"), Color3.fromHex("8a8f96")
+local WINDOW_ON, WINDOW_OFF = Color3.fromHex("ffd98a"), Color3.fromHex("7fa6c9")
+local CANDLE_ON, CANDLE_OFF = Color3.fromHex("ffcf6b"), Color3.fromHex("fff4d8")
+local shown: { [Instance]: boolean } = {}
+local flickerUntil = 0
+
+-- Lit at this clock time, for a light switched on `offset` hours after dusk begins.
+local function litAt(t: number, offset: number): boolean
+	return t >= 17.5 + offset or t < 6.5 - offset
+end
+
+local function show(part: BasePart, on: boolean, onColor: Color3, offColor: Color3)
+	if shown[part] == on then
 		return
 	end
-	lit = on
-	for _, bulb in CollectionService:GetTagged("Streetlight") do
-		bulb.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
-		bulb.Color = if on then Color3.fromHex("ffe2a8") else Color3.fromHex("8a8f96")
-		local light = bulb:FindFirstChildOfClass("PointLight")
-		if light then
-			light.Enabled = on
-		end
+	shown[part] = on
+	part.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	part.Color = if on then onColor else offColor
+	local light = part:FindFirstChildOfClass("PointLight")
+	if light then
+		light.Enabled = on
 	end
+end
+
+local function updateLights()
+	local t = clock
+	local flicker = os.clock() < flickerUntil
+	for i, bulb in CollectionService:GetTagged("Streetlight") do
+		local offset = ((bulb:GetAttribute("Order") or i) * 7 % 30) / 60 -- up to half an hour
+		local on = litAt(t, offset) and not weather.brownout
+		if flicker then
+			on = math.floor(os.clock() * 4) % 2 == 0 -- the lights stutter before they die
+		end
+		show(bulb, on, LAMP_ON, LAMP_OFF)
+	end
+	for i, window in CollectionService:GetTagged("Window") do
+		local offset = (i * 11 % 40) / 60
+		show(window, litAt(t, offset) and not weather.brownout, WINDOW_ON, WINDOW_OFF)
+	end
+	local candles = WorldClock.isNight(t) or weather.festival == "undas"
+	for _, candle in CollectionService:GetTagged("Candle") do
+		show(candle, candles, CANDLE_ON, CANDLE_OFF)
+	end
+	-- The town's own light: darker at night, much darker in a brownout
+	local night = WorldClock.isNight(t)
+	local ambient = if night and weather.brownout then 25 elseif night then 70 else 128
+	local now = Lighting.OutdoorAmbient.R * 255
+	local level = now + (ambient - now) * 0.25 -- eased, a quarter of the way each update
+	Lighting.OutdoorAmbient = Color3.fromRGB(level, level, level)
+	Lighting.Ambient = Color3.fromRGB(level * 0.3, level * 0.3, level * 0.35)
 end
 
 local function showFolder(path: { string }, visible: boolean)
@@ -87,6 +128,7 @@ local function step(dt: number)
 	-- and keeps the clock from replicating every frame
 	clock = WorldClock.advance(clock, dt)
 	sinceWrite += dt
+	sinceLights += dt
 	if sinceWrite >= 0.5 then
 		sinceWrite = 0
 		Lighting.ClockTime = clock
@@ -122,6 +164,7 @@ local function step(dt: number)
 			left.brownout = between(Config.BROWNOUT_LASTS)
 			weather.brownout = true
 			workspace:SetAttribute("Brownout", true)
+			flickerUntil = os.clock() + 1.5
 			announce("Brownout! The whole town went dark")
 		end
 	end
@@ -142,7 +185,10 @@ local function step(dt: number)
 		end
 	end
 
-	setLamps(night and not weather.brownout)
+	if sinceLights >= 0.5 or os.clock() < flickerUntil then
+		sinceLights = 0
+		updateLights()
+	end
 end
 
 -- For tests and playtests: start an event now ("rain", "brownout", "fiesta", "undas").

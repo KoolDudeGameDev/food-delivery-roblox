@@ -127,6 +127,17 @@ local function build(key: string, lv: { [string]: number }, paint: Color3): Mode
 			box(0.2, 0.2, 0.3, STEEL, 0, 0.5, 0.5 - i * 0.3)
 		end
 	end
+	-- A headlight on the front, which every client switches on after dark (client/Lights.luau)
+	local lamp = box(0.25, 0.18, 0.08, hex("fff4d8"), 0, if key == "rollerblades" then 0.3 else 1.05, 1.05)
+	lamp.Name = "Headlight"
+	local beam = Instance.new("SpotLight")
+	beam.Face = Enum.NormalId.Back -- +z, the way the ride faces
+	beam.Range = 18 * S -- 18 m down the road
+	beam.Angle = 50
+	beam.Brightness = 3
+	beam.Enabled = false
+	beam.Parent = lamp
+	game:GetService("CollectionService"):AddTag(lamp, "Headlight")
 	model.WorldPivot = CFrame.new() -- the ground under the rider, facing +z
 	return model
 end
