@@ -35,7 +35,7 @@ function Hud.mount(screen: ScreenGui)
 		Parent = gui,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 12),
-		Size = UDim2.new(0.9, 0, 0, 0),
+		Size = UDim2.new(1, -2 * 180, 0, 0), -- between the HUD on the left and the minimap
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 	}, {
@@ -46,11 +46,18 @@ end
 function Hud.toast(text: string, color: Color3?)
 	local toast = Ui.make("Frame", {
 		Parent = toastFrame,
-		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.fromScale(1, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = color or Ui.INK,
 		BackgroundTransparency = 0.1,
-	}, { Ui.corner(10), Ui.pad(10) })
-	Ui.label(text, 18, Color3.new(1, 1, 1), { Parent = toast, TextWrapped = true })
+	}, { Ui.corner(10), Ui.pad(8) })
+	Ui.label(text, 16, Color3.new(1, 1, 1), {
+		Parent = toast,
+		Size = UDim2.fromScale(1, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	})
 	task.delay(3.5, function()
 		toast:Destroy()
 	end)
@@ -59,6 +66,8 @@ end
 function Hud.onNotify(message)
 	if message.kind == "toast" then
 		Hud.toast(message.text)
+	elseif message.kind == "bite" then
+		Hud.toast(message.text, Color3.fromHex("d6402b"))
 	elseif message.kind == "paid" then
 		local extra = if message.night then " night pay" else ""
 		Hud.toast(`{Ui.stars(message.rating)}  +₱{message.total}{extra}`, Ui.GOOD)

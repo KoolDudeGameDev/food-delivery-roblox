@@ -4,7 +4,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Board = require(script.Parent.Board)
+local Chasers = require(script.Parent.Chasers)
 local Hud = require(script.Parent.Hud)
+local Map = require(script.Parent.Map)
 local Waypoint = require(script.Parent.Waypoint)
 
 local Remotes = ReplicatedStorage.Remotes
@@ -18,15 +20,27 @@ screen.Parent = player:WaitForChild("PlayerGui")
 
 Hud.mount(screen)
 Board.mount(screen)
+Map.mount(screen)
+Chasers.start()
 
 local latest
 Remotes.State.OnClientEvent:Connect(function(state)
 	latest = state
 	Hud.onState(state)
 	Board.onState(state)
+	Map.onState(state)
 	Waypoint.onState(state)
 end)
-Remotes.Notify.OnClientEvent:Connect(Hud.onNotify)
+Remotes.Notify.OnClientEvent:Connect(function(message)
+	Hud.onNotify(message)
+	-- A bite knocks you back; the server already decided it and took its toll
+	if message.kind == "bite" and typeof(message.knock) == "Vector3" then
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			root.AssemblyLinearVelocity = message.knock
+		end
+	end
+end)
 
 -- The waypoint's beam hangs off the character, so a new character needs it again
 player.CharacterAdded:Connect(function(character)
@@ -42,10 +56,12 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt)
 	end
 end)
 
-RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function(dt)
 	local now = workspace:GetServerTimeNow()
 	Hud.step(now)
 	Board.step(now)
+	Map.step()
+	Chasers.step(dt, os.clock())
 	-- Walking away from the board closes it
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if Board.isOpen() and latest and root and (root.Position - latest.hub).Magnitude > 30 then
