@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Homes = require(ReplicatedStorage.Shared.Data.Homes)
 local Offers = require(ReplicatedStorage.Shared.Offers)
+local OrderTypes = require(ReplicatedStorage.Shared.Data.OrderTypes)
 local Pay = require(ReplicatedStorage.Shared.Pay)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local WorldLayout = require(ReplicatedStorage.Shared.WorldLayout)
@@ -128,11 +129,11 @@ end
 local function updateSpeed(player: Player)
 	local state = states[player]
 	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-	if not (state and humanoid) then
+	if not humanoid then
 		return
 	end
 	local parcel = false
-	for _, o in state.orders do
+	for _, o in if state then state.orders else {} do
 		parcel = parcel or not o.food
 	end
 	humanoid.WalkSpeed = Config.RUN * S * (if parcel then Config.PARCEL_SLOW else 1)
@@ -302,6 +303,33 @@ function OrderService.start()
 		end
 	end)
 end
+
+-- Bites (and later crashes) hurt everything a player carries: fragile orders twice as much.
+-- Any hurt ends the streak, as in the prototype.
+function OrderService.hurt(player: Player, amount: number)
+	local state, data = states[player], DataService.get(player)
+	if not (state and data) then
+		return
+	end
+	for _, order in state.orders do
+		order.fresh = math.max(0, order.fresh - amount * OrderTypes[order.typeKey].damage)
+	end
+	if data.streak >= 3 then
+		notify(player, { kind = "toast", text = `Streak of {data.streak} lost!` })
+	end
+	if data.streak > 0 then
+		data.streak = 0
+		DataService.changed(player)
+	end
+	push(player)
+end
+
+function OrderService.carrying(player: Player): number
+	local state = states[player]
+	return if state then #state.orders else 0
+end
+
+OrderService.updateSpeed = updateSpeed
 
 -- For tests and probes: the server's view of a player's carried orders and board.
 function OrderService.stateOf(player: Player)

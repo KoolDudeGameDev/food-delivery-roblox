@@ -4,4 +4,5 @@ local Server = script.Parent
 require(Server.WorldBuilder).build()
 require(Server.LotService).start()
 require(Server.OrderService).start()
+require(Server.ChaserService).start()
 require(Server.DataService).start()

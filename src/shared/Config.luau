@@ -38,13 +38,17 @@ Config.RAIN_PAY = 0.1
 Config.FIESTA_PAY = 0.25
 Config.UNDAS_PAY = 0.5
 
--- A size sets how a chaser plays; danger feeds an order's difficulty stars.
+-- A size sets how a chaser plays: speed (m/s), bite damage (% of each order's condition),
+-- knock (m/s of knockback), stun (s), danger (difficulty stars), scale (model size).
 Config.DOG_TYPES = {
-	tiny = { speed = 8.2, damage = 5, danger = 0.5 },
-	small = { speed = 7.5, damage = 10, danger = 1 },
-	medium = { speed = 6.3, damage = 18, danger = 1.5 },
-	big = { speed = 5.4, damage = 30, danger = 2 },
-	giant = { speed = 4.6, damage = 45, danger = 3 },
+	tiny = { speed = 8.2, damage = 5, knock = 3, stun = 0.05, danger = 0.5, scale = 0.45 },
+	small = { speed = 7.5, damage = 10, knock = 5, stun = 0.15, danger = 1, scale = 0.65 },
+	medium = { speed = 6.3, damage = 18, knock = 8, stun = 0.35, danger = 1.5, scale = 1 },
+	big = { speed = 5.4, damage = 30, knock = 13, stun = 0.7, danger = 2, scale = 1.35 },
+	giant = { speed = 4.6, damage = 45, knock = 19, stun = 1.1, danger = 3, scale = 1.9 },
 }
+Config.DOG_WANDER = 1.6 -- m/s when nobody's in the yard
+Config.BITE_GAP = 1.2 -- s between one dog's bites
+Config.DOG_WAKE = 60 -- m: dogs with nobody this close stay asleep, to save the server work
 
 return Config
