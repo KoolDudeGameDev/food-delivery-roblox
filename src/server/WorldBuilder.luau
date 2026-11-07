@@ -102,12 +102,23 @@ end
 
 local function buildRoads()
 	local roads = folder("Roads", world)
-	for i, r in WorldLayout.ROADS do
-		local w, d, x, z = r[1], r[2], r[3], r[4]
-		block(roads, `Sidewalk{i}`, w + 3, 0.06, d + 3, hex("bfc3c9"), x, 0.03, z, Enum.Material.Concrete)
+	for _, r in WorldLayout.ROADS do
 		-- East-west roads sit a touch lower, so crossings don't flicker
-		local top = if w > d then 0.085 else 0.09
-		block(roads, `Road{i}`, w, 0.03, d, hex("4a4f57"), x, top - 0.015, z, Enum.Material.Asphalt)
+		local top = if r.w > r.d then 0.085 else 0.09
+		if r.dirt then
+			block(roads, r.name, r.w, 0.03, r.d, hex("c9a878"), r.x, top - 0.035, r.z, Enum.Material.Ground)
+		else
+			block(roads, `{r.name}Sidewalk`, r.w + 3, 0.06, r.d + 3, hex("bfc3c9"), r.x, 0.03, r.z, Enum.Material.Concrete)
+			block(roads, r.name, r.w, 0.03, r.d, hex("4a4f57"), r.x, top - 0.015, r.z, Enum.Material.Asphalt)
+		end
+	end
+	-- The reserved corridors end in a barrier until their districts are built (Blueprint §14)
+	local reserve = world.ExpansionReserve
+	for _, e in WorldLayout.EXPANSION do
+		local stripes = block(reserve, `Barrier_{e.id}`, WorldLayout.ROAD_W + 3, 1.2, 0.5, hex("ff7a45"), e.x, 0.6, e.z)
+		stripes.Material = Enum.Material.SmoothPlastic
+		local yaw = if e.z < 0 then math.pi else 0
+		sign(reserve, e.label, 8, 1.4, e.x, 2.4, e.z, yaw, hex("ffd23f"), hex("222222"))
 	end
 end
 
@@ -252,35 +263,101 @@ local function buildCemetery()
 	block(f, "WallW", 0.6, 1.6, c.z1 - c.z0, stone, c.x0, 0.8, z)
 	block(f, "WallE1", 0.6, 1.6, side, stone, c.x1, 0.8, c.z0 + side / 2)
 	block(f, "WallE2", 0.6, 1.6, side, stone, c.x1, 0.8, c.z1 - side / 2)
+	for _, s in { -1, 1 } do
+		block(f, "GatePost", 0.9, 3.4, 0.9, stone, c.x1, 1.7, z + s * c.gateGap)
+	end
 	block(f, "GateBar", 0.7, 0.5, c.gateGap * 2 + 0.9, hex("2b2f36"), c.x1, 3.6, z)
 	sign(f, "CEMETERY", 6, 1.5, c.x1 + 0.4, 4.7, z, math.pi / 2, hex("2b2f36"), hex("e8e4d8"))
-	block(f, "Path", 40.5, 0.04, 3.6, hex("d9c79a"), 92.75, 0.05, z)
-	block(f, "PathWest", 3.6, 0.04, 11, hex("d9c79a"), 74.5, 0.05, 82.5)
-	-- Apartment tombs along three walls, and painted ground tombs between
-	block(f, "Apartments1", 2.4, 4.8, 27, hex("dcd8cc"), 70.2, 2.4, 88)
-	block(f, "Apartments2", 30, 4.8, 2.4, hex("dcd8cc"), 89, 2.4, 72.2)
-	block(f, "Apartments3", 30, 4.8, 2.4, hex("dcd8cc"), 89, 2.4, 103.8)
+
+	-- The rest is the prototype's graveyard, laid out from (68, 70) and shifted into place
+	local function at(name, w, h, d, color, px, y, pz)
+		return block(f, name, w, h, d, color, px + c.ox, y, pz + c.oz)
+	end
+	at("Path", 40.5, 0.04, 3.6, hex("d9c79a"), 92.75, 0.05, 88)
+	at("PathWest", 3.6, 0.04, 11, hex("d9c79a"), 74.5, 0.05, 82.5)
+	-- Apartment tombs, stacked like cabinets along three walls, and painted ground tombs
+	at("Apartments1", 2.4, 4.8, 27, hex("dcd8cc"), 70.2, 2.4, 88)
+	at("Apartments2", 30, 4.8, 2.4, hex("dcd8cc"), 89, 2.4, 72.2)
+	at("Apartments3", 30, 4.8, 2.4, hex("dcd8cc"), 89, 2.4, 103.8)
 	local paint = { hex("f1efe9"), hex("bcdff0"), hex("f4c6d0"), hex("c7e8c5"), hex("e9e3b8") }
 	local n = 0
 	for _, tz in { 77.5, 82, 94, 98.5 } do
 		for tx = 79, 104, 4.5 do
 			n += 1
-			block(f, "Tomb", 1.7, 0.7 + (n % 3) * 0.6, 2.6, paint[n % #paint + 1], tx, (0.7 + (n % 3) * 0.6) / 2, tz)
+			local h = 0.7 + (n % 3) * 0.6
+			at("Tomb", 1.7, h, 2.6, paint[n % #paint + 1], tx, h / 2, tz)
+			at("Cross", 0.2, 1.4, 0.2, Color3.new(1, 1, 1), tx, h + 0.7, tz - 1.1)
 		end
 	end
 	-- The grave that takes parcels
-	block(f, "Grave", 1.7, 0.7, 2.6, hex("bcdff0"), 74.5, 0.35, 75.5)
-	block(f, "Cross", 0.2, 1.4, 0.2, Color3.new(1, 1, 1), 74.5, 1.5, 74.4)
+	at("Grave", 1.7, 0.7, 2.6, hex("bcdff0"), 74.5, 0.35, 75.5)
+	at("GraveCross", 0.2, 1.4, 0.2, Color3.new(1, 1, 1), 74.5, 1.5, 74.4)
+	for _, t in { { 106, 104 }, { 106, 72 }, { 76, 97 } } do
+		at("Tree", 0.7, 5, 0.7, hex("4a3a2c"), t[1], 2.5, t[2])
+	end
+end
+
+-- A graybox tree: a trunk and a crown. Toolbox trees replace it through art("Tree").
+local function tree(parent: Instance, x: number, z: number, s: number)
+	if art("Tree", CFrame.new(WorldLayout.studs(x, z)) * CFrame.Angles(0, x % 6.28, 0), parent) then
+		return
+	end
+	block(parent, "Trunk", 0.5 * s, 3 * s, 0.5 * s, hex("7a5a3c"), x, 1.5 * s, z, Enum.Material.Wood)
+	local crown = block(parent, "Crown", 3.2 * s, 2.6 * s, 3.2 * s, hex("3f9a52"), x, 3.8 * s, z, Enum.Material.Grass)
+	crown.Shape = Enum.PartType.Ball
+	crown.CastShadow = true
+end
+
+-- The palengke: stalls with coloured canopies along the north spoke, bunting across the road.
+local function buildMarket()
+	local town = world.TownCenter
+	local m = WorldLayout.MARKET
+	local canopies = { "f06a6a", "ffd23f", "6cc6ff", "8fd16a", "e77fb3", "ff9a4a", "b79ae0" }
+	local i = 0
+	for z = m.z0, m.z1, m.step do
+		for _, s in { -1, 1 } do
+			i += 1
+			local x = s * m.x
+			if not art("Stall", CFrame.new(WorldLayout.studs(x, z)) * CFrame.Angles(0, s * math.pi / 2, 0), town) then
+				block(town, "Counter", m.w - 1, 1, m.d - 1, hex("8a6a4a"), x, 0.5, z, Enum.Material.Wood)
+				for _, c in { { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } } do
+					block(town, "Pole", 0.12, 2.6, 0.12, hex("d6d9de"), x + c[1] * (m.w / 2 - 0.2), 1.3, z + c[2] * (m.d / 2 - 0.2))
+				end
+				block(town, "Canopy", m.w, 0.25, m.d, hex(canopies[i % #canopies + 1]), x, 2.7, z)
+			end
+		end
+		-- A line of bunting across the road, flags in turn
+		block(town, "Rope", m.x * 2, 0.05, 0.05, hex("a88a6a"), 0, 4.6, z)
+		for f = -7, 7 do
+			local flag = block(town, "Flag", 0.7, 0.7, 0.05, hex(canopies[(f + 8 + i) % #canopies + 1]), f * 1.1, 4.2, z)
+			flag.CanCollide = false
+		end
+	end
+	sign(town, "PALENGKE", 8, 1.6, 0, 6.2, m.z1 + 3, 0, hex("d6402b"), Color3.new(1, 1, 1))
 end
 
 local function buildScenery()
 	local town, community = world.TownCenter, world.CommunityDistrict
 	for i, t in WorldLayout.TOWERS do
-		local x, z, w, d, floors, color = t[1], t[2], t[3], t[4], t[5], hex(t[6])
-		if not art("Tower", CFrame.new(WorldLayout.studs(x, z)), town) then
-			block(town, `Tower{i}`, w, floors * 6, d, color, x, floors * 3, z, Enum.Material.Concrete)
-			block(town, `TowerRoof{i}`, w + 1, 0.6, d + 1, hex("6e7480"), x, floors * 6 + 0.3, z)
+		if not art("Tower", CFrame.new(WorldLayout.studs(t.x, t.z)), town) then
+			block(town, `Tower{i}`, t.w, t.floors * 6, t.d, hex(t.color), t.x, t.floors * 3, t.z, Enum.Material.Concrete)
+			block(town, `TowerRoof{i}`, t.w + 1, 0.6, t.d + 1, hex("6e7480"), t.x, t.floors * 6 + 0.3, t.z)
 		end
+	end
+	-- The barangay hall, facing the inner ring, with a flag out front
+	local b = WorldLayout.BARANGAY
+	if not art("Barangay", CFrame.new(WorldLayout.studs(b.x, b.z)) * CFrame.Angles(0, -math.pi / 2, 0), community) then
+		block(community, "BarangayHall", b.w, 6, b.d, hex("f4efe4"), b.x, 3, b.z, Enum.Material.Concrete)
+		block(community, "BarangayRoof", b.w + 1, 0.6, b.d + 1, hex("2f6db5"), b.x, 6.3, b.z)
+	end
+	sign(community, "BARANGAY HALL", 9, 1.4, b.x - b.w / 2 - 0.1, 5, b.z, -math.pi / 2, hex("2f6db5"), Color3.new(1, 1, 1))
+	block(community, "Flagpole", 0.2, 8, 0.2, hex("d6d9de"), b.x - b.w / 2 - 3, 4, b.z - 5)
+	block(community, "FlagBlue", 2.4, 0.6, 0.05, hex("0038a8"), b.x - b.w / 2 - 1.7, 7.6, b.z - 5)
+	block(community, "FlagRed", 2.4, 0.6, 0.05, hex("ce1126"), b.x - b.w / 2 - 1.7, 7.0, b.z - 5)
+	buildMarket()
+	local greenery = folder("Trees", world.RuralOutskirts)
+	for _, t in WorldLayout.trees() do
+		tree(greenery, t.x, t.z, t.s)
 	end
 	-- Sari-sari stores, facing the outer ring (the art direction's storefront)
 	for i, s in WorldLayout.SARI_SARI do
@@ -315,8 +392,7 @@ local function buildLots()
 		model:SetAttribute("LotId", lot.id)
 		model:SetAttribute("District", lot.district)
 		model.Parent = gameplay.HomeLots
-		local w, d = if lot.dx ~= 0 then 28 else 40, if lot.dx ~= 0 then 40 else 28
-		block(model, "Plot", w, 0.05, d, hex("b9a27a"), lot.x, 0.03, lot.z, Enum.Material.Ground)
+		block(model, "Plot", lot.w, 0.05, lot.d, hex("b9a27a"), lot.x, 0.03, lot.z, Enum.Material.Ground)
 		-- Owner sign beside the front; LotService writes the name on it
 		local sx, sz = lot.x + lot.dx * 9 + lot.dz * 6, lot.z + lot.dz * 9 - lot.dx * 6
 		block(model, "SignPost", 0.25, 2.4, 0.25, hex("7a5a3c"), sx, 1.2, sz)
