@@ -25,9 +25,15 @@ The design lives in [`design/`](design/):
 - [`MVP-Tracker.md`](design/MVP-Tracker.md) shows what is built and tested so far, against the
   GDD's MVP acceptance criteria.
 
-**Status:** early development. The graybox town and the first delivery loop work: take an order
-at the board, follow the beam, reach the door before the timer runs out, and get paid by the
-server. Chasers, rides, shops and events come next.
+**Status:** early development. The graybox town follows the World Layout Blueprint (about
+500 m across: town core, residential rings, rural outskirts, market street, cemetery). It has
+the first delivery loop, yard dogs that chase and bite, a minimap with a full town map, and
+rides. Take an order at the board, follow the beam and the map pin, get past the dog, and reach
+the door before the timer runs out. Spend your pay at the dealer, the mechanic and your home.
+Your ride parks itself at the gate, so the last stretch is always on foot. The town has a
+day and night cycle, rain, brownouts, fiestas and Undas, daily goals, a soundscape, and the
+first Toolbox art. The intro screen, paint and decor, and night content come next. See
+[`design/MVP-Tracker.md`](design/MVP-Tracker.md).
 
 ## Building it
 
@@ -55,9 +61,9 @@ r:Destroy(); print(ok and res or ("runner error: " .. tostring(res)))
 
 | Path | What |
 | --- | --- |
-| `src/shared/` | Rules and data both sides read: `Config`, `Pay`, `Offers`, `PlayerData`, `WorldLayout`, `Data/*` |
-| `src/server/` | Everything that decides money or state: `WorldBuilder`, `DataService` (ProfileStore), `LotService`, `OrderService` |
-| `src/client/` | Input, screens and effects: `Hud`, `Board`, `Waypoint` |
+| `src/shared/` | Rules and data both sides read: `Config`, `Pay`, `Offers`, `Shop`, `ChaserRules`, `Goals`, `WorldClock`, `PlayerData`, `WorldLayout`, `Data/*` |
+| `src/server/` | Everything that decides money or state: `WorldBuilder`, `DataService` (ProfileStore), `LotService`, `OrderService`, `GateService`, `ChaserService`, `MoveService`, `RideService`, `ShopService`, `WorldService` |
+| `src/client/` | Input, screens and effects: `Hud`, `Board`, `Map`, `ShopPanel`, `Waypoint`, `Chasers`, `Gates`, `Conveyor`, `Grip`, `Riding`, `Lights`, `Weather` |
 | `tests/` | `*.spec.luau` specs and the `Runner` |
 
 **Rule:** the server decides money. The client only asks ("accept this offer") and never says

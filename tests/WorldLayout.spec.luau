@@ -3,27 +3,32 @@ local function load()
 	return require(script.Parent.Parent.Shared.WorldLayout)
 end
 
-local function onRoad(L, x, z, margin)
-	for _, r in L.ROADS do
-		if math.abs(x - r[3]) < r[1] / 2 + margin and math.abs(z - r[4]) < r[2] / 2 + margin then
-			return true
-		end
-	end
-	return false
+local SIDEWALK = 1.5
+
+local function overlaps(a, b, margin)
+	return a.x0 < b.x1 + margin and b.x0 < a.x1 + margin and a.z0 < b.z1 + margin and b.z0 < a.z1 + margin
+end
+
+local function roadRect(r)
+	return { x0 = r.x - r.w / 2, x1 = r.x + r.w / 2, z0 = r.z - r.d / 2, z1 = r.z + r.d / 2 }
 end
 
 return {
-	twentyOneCustomersPlusTheCemeteryWithUniqueIds = function()
+	twentyOneCustomersSplitSevenSevenSevenPlusTheCemetery = function()
 		local L = load()
 		assert(#L.HOUSES == 22, `{#L.HOUSES} delivery places`)
-		local ids = {}
+		local ids, rings = {}, { inner = 0, outer = 0, rural = 0 }
 		for _, h in L.HOUSES do
 			assert(not ids[h.id], `duplicate id {h.id}`)
 			ids[h.id] = true
 			assert(L.byId[h.id] == h)
 			assert(L.HOUSE_SIZES[h.size], `{h.id} has an unknown size`)
 			assert(h.district ~= "", `{h.id} has no district`)
+			if h.id ~= "cemetery" then
+				rings[h.ring] += 1
+			end
 		end
+		assert(rings.inner == 7 and rings.outer == 7 and rings.rural == 7, `rings {rings.inner}/{rings.outer}/{rings.rural}`)
 	end,
 	sevenLotsAtLeast72mApart = function()
 		local L = load()
@@ -36,34 +41,130 @@ return {
 			end
 		end
 	end,
-	lotsAreOffTheRoads = function()
+	nothingOverlaps = function()
 		local L = load()
-		for _, lot in L.LOTS do
-			assert(not onRoad(L, lot.x, lot.z, 12), `{lot.id} is on a road`)
+		local prints = L.footprints()
+		for i, a in prints do
+			for j = i + 1, #prints do
+				local b = prints[j]
+				if a.kind ~= "hub" and b.kind ~= "hub" then
+					assert(not overlaps(a, b, 0), `{a.name} overlaps {b.name}`)
+				end
+			end
 		end
 	end,
-	everyDoorstepIsInsideItsYardAndOffTheRoad = function()
+	nothingSitsOnARoadOrSidewalk = function()
+		local L = load()
+		for _, p in L.footprints() do
+			for _, r in L.ROADS do
+				assert(not overlaps(p, roadRect(r), SIDEWALK), `{p.name} is on {r.name}`)
+			end
+		end
+	end,
+	theCrossroadsAreClear = function()
+		local L = load()
+		local hub = L.HUB
+		assert(not L.onRoad(hub.x, hub.z, 0), "the order board is on a road")
+		for _, p in L.footprints() do
+			assert(not (p.x0 < 6 and p.x1 > -6 and p.z0 < 6 and p.z1 > -6), `{p.name} blocks the crossroads`)
+		end
+	end,
+	noFourWayCrossings = function()
+		-- Blueprint §5.2: T-junctions and bends only. Where two roads meet, at least one of them
+		-- must end inside the other, not run straight through it.
+		local L = load()
+		local function through(a, b)
+			local ra, rb = roadRect(a), roadRect(b)
+			if a.d > a.w then -- a runs north-south
+				return ra.z0 < rb.z0 - 0.01 and ra.z1 > rb.z1 + 0.01
+			end
+			return ra.x0 < rb.x0 - 0.01 and ra.x1 > rb.x1 + 0.01
+		end
+		for i, a in L.ROADS do
+			for j = i + 1, #L.ROADS do
+				local b = L.ROADS[j]
+				if overlaps(roadRect(a), roadRect(b), 0) then
+					assert(not (through(a, b) and through(b, a)), `{a.name} and {b.name} cross`)
+				end
+			end
+		end
+	end,
+	theCommunityDistrictSitsTogetherInTheMiddleWest = function()
+		local L = load()
+		local n = 0
+		for _, p in L.footprints() do
+			if p.district == "CommunityDistrict" then
+				n += 1
+				assert(p.x0 > -L.OUTER and p.x1 < -L.RING and p.z0 > -60 and p.z1 < 60, `{p.name} is outside the middle-west`)
+			end
+		end
+		assert(n == 4, `{n} community footprints`)
+	end,
+	polesStandClearInRuns = function()
+		local L = load()
+		local n = 0
+		for _, run in L.poles() do
+			assert(#run >= 2, "a run of one pole")
+			for _, pole in run do
+				n += 1
+				assert(not L.blocked(pole.x, pole.z, 0.8), "a pole is in the way")
+			end
+		end
+		assert(n > 12, `only {n} poles`)
+	end,
+	lampsStayOnTheSidewalks = function()
+		local L = load()
+		local lamps = L.lamps()
+		assert(#lamps > 20, `only {#lamps} lamps`)
+		for _, l in lamps do
+			assert(not L.onRoad(l.x, l.z, 0.3) and not L.blocked(l.x, l.z, 0.5), "a lamp is in the way")
+		end
+	end,
+	everyDoorstepIsInsideItsYard = function()
 		local L = load()
 		for _, h in L.HOUSES do
-			if h.id == "cemetery" then
-				continue
-			end
-			local size = L.HOUSE_SIZES[h.size]
-			local reach = math.max(size.yardU, size.yardV)
-			local d = math.sqrt((h.step.x - h.x) ^ 2 + (h.step.z - h.z) ^ 2)
-			assert(d < reach, `{h.id}'s doorstep is {d} m from the house`)
-			assert(not onRoad(L, h.step.x, h.step.z, 0), `{h.id}'s doorstep is on a road`)
+			local y = h.yard
+			assert(h.step.x > y.x0 and h.step.x < y.x1 and h.step.z > y.z0 and h.step.z < y.z1, `{h.id}'s doorstep is outside its yard`)
+			assert(not L.onRoad(h.step.x, h.step.z, 0), `{h.id}'s doorstep is on a road`)
 		end
-		local c, g = L.CEMETERY, L.byId.cemetery.step
-		assert(g.x > c.x0 and g.x < c.x1 and g.z > c.z0 and g.z < c.z1, "the grave is outside the cemetery")
+	end,
+	everyGateReachesARoad = function()
+		local L = load()
+		for _, h in L.HOUSES do
+			if h.id ~= "cemetery" then
+				local x, z = L.frame(h)(0, L.ROAD_REACH)
+				assert(L.onRoad(x, z, 0), `{h.id}'s path doesn't reach a road`)
+			end
+		end
+		-- The cemetery's gate opens onto its lane
+		local c = L.CEMETERY
+		assert(L.onRoad(c.x1 + 6, (c.z0 + c.z1) / 2, 0), "the cemetery gate doesn't reach its lane")
+	end,
+	ridesParkOutsideEveryYardAndBuilding = function()
+		local L = load()
+		for _, h in L.HOUSES do
+			local spot = L.parkingSpot(h)
+			assert(L.yardAt(spot.x, spot.z) == nil, `{h.id} parks inside a yard`)
+			for _, p in L.footprints() do
+				if p.kind ~= "lot" then
+					assert(not (spot.x > p.x0 and spot.x < p.x1 and spot.z > p.z0 and spot.z < p.z1), `{h.id} parks on {p.name}`)
+				end
+			end
+			assert(math.abs(spot.x) < L.EDGE and math.abs(spot.z) < L.EDGE, `{h.id} parks off the map`)
+		end
 	end,
 	everythingIsOnTheMap = function()
 		local L = load()
-		for _, p in L.HOUSES do
-			assert(math.abs(p.x) < L.EDGE and math.abs(p.z) < L.EDGE, `{p.id} is off the map`)
+		for _, p in L.footprints() do
+			assert(p.x0 > -L.EDGE and p.x1 < L.EDGE and p.z0 > -L.EDGE and p.z1 < L.EDGE, `{p.name} is off the map`)
 		end
-		for _, p in L.LOTS do
-			assert(math.abs(p.x) < L.EDGE - 10 and math.abs(p.z) < L.EDGE - 10, `{p.id} is off the map`)
+	end,
+	treesStayOffEverything = function()
+		local L = load()
+		local trees = L.trees()
+		assert(#trees > 50, `only {#trees} trees`)
+		for _, t in trees do
+			assert(not L.blocked(t.x, t.z, 3), "a tree is in the way")
 		end
 	end,
 }
