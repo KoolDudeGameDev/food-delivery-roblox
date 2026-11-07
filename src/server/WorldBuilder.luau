@@ -214,9 +214,9 @@ end
 
 -- Fence styles by house size (Blueprint §7.2)
 local FENCES = {
-	small = { height = 1.4, color = hex("c9a96b"), material = Enum.Material.Wood },
-	medium = { height = 2, color = hex("f3efe4"), material = Enum.Material.SmoothPlastic },
-	large = { height = 2.6, color = hex("b8b4aa"), material = Enum.Material.Concrete },
+	small = { height = 1.4, color = hex("c9a96b"), material = Enum.Material.Wood, leaves = 1, gate = hex("b08a52") },
+	medium = { height = 2, color = hex("f3efe4"), material = Enum.Material.SmoothPlastic, leaves = 2, gate = hex("e8e2d0") },
+	large = { height = 2.6, color = hex("b8b4aa"), material = Enum.Material.Concrete, leaves = 2, gate = hex("4a5058") },
 }
 
 local function buildHouse(h)
@@ -254,6 +254,25 @@ local function buildHouse(h)
 	local gate = block(model, "GateArch", GATE * 2 + 0.6, 0.5, 0.6, h.color, gx, 4, gz)
 	gate.CFrame = CFrame.new(gate.Position) * CFrame.Angles(0, yaw, 0)
 	sign(model, h.name:upper(), 3, 0.9, gx, 4.9, gz, yaw, Color3.new(1, 1, 1), hex("222222"))
+
+	-- The gate itself: shut and solid until someone brings this house an order (GateService
+	-- opens it; each client swings the leaves). A small house has one leaf, the others two.
+	local gateModel = Instance.new("Model")
+	gateModel.Name = "Gate"
+	gateModel:SetAttribute("HouseId", h.id)
+	gateModel:SetAttribute("Open", false)
+	gateModel:SetAttribute("Inward", WorldLayout.studs(h.x, h.z)) -- the leaves swing towards the house
+	gateModel.Parent = model
+	local spans = if style.leaves == 1 then { { -GATE, GATE, -GATE } } else { { -GATE, 0, -GATE }, { 0, GATE, GATE } }
+	for _, span in spans do
+		local u0, u1, hingeU = span[1], span[2], span[3]
+		local cx, cz = at((u0 + u1) / 2, V)
+		local leaf = block(gateModel, "GateLeaf", u1 - u0 - 0.1, style.height * 0.9, 0.12, style.gate, cx, style.height * 0.45, cz)
+		leaf.CFrame = CFrame.new(leaf.Position) * CFrame.Angles(0, yaw, 0)
+		local hx, hz = at(hingeU, V)
+		leaf:SetAttribute("Hinge", WorldLayout.studs(hx, hz))
+		CollectionService:AddTag(leaf, "GateLeaf")
+	end
 
 	-- The house, near the back of the yard
 	local hx, hz = at(0, geo.bodyV)

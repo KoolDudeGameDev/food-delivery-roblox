@@ -228,6 +228,7 @@ local function deliver(player: Player, state: State, order: Order)
 	end
 	notify(player, {
 		kind = "paid",
+		houseId = order.houseId, -- the client opens that front door and pops the pay over it
 		title = order.title,
 		pay = order.pay,
 		tip = result.tip,
@@ -360,6 +361,17 @@ end
 function OrderService.carrying(player: Player): number
 	local state = states[player]
 	return if state then #state.orders else 0
+end
+
+-- Whether the player carries an order for this house (GateService opens its gate).
+function OrderService.carriesFor(player: Player, houseId: string): boolean
+	local state = states[player]
+	for _, o in if state then state.orders else {} do
+		if o.houseId == houseId then
+			return true
+		end
+	end
+	return false
 end
 
 OrderService.updateSpeed = updateSpeed

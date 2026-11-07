@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 
 local Board = require(script.Parent.Board)
 local Chasers = require(script.Parent.Chasers)
+local Gates = require(script.Parent.Gates)
 local Hud = require(script.Parent.Hud)
 local Map = require(script.Parent.Map)
 local Riding = require(script.Parent.Riding)
@@ -30,6 +31,7 @@ Board.mount(screen)
 Map.mount(screen)
 ShopPanel.mount(screen)
 Chasers.start()
+Gates.start()
 Weather.start()
 
 local latest
@@ -43,6 +45,9 @@ Remotes.State.OnClientEvent:Connect(function(state)
 end)
 Remotes.Notify.OnClientEvent:Connect(function(message)
 	Hud.onNotify(message)
+	if message.kind == "paid" and message.houseId then
+		Gates.delivered(message.houseId, message.total)
+	end
 	-- A bite knocks you back; the server already decided it and took its toll
 	if message.kind == "bite" and typeof(message.knock) == "Vector3" then
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
