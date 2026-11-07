@@ -25,9 +25,11 @@ The design lives in [`design/`](design/):
 - [`MVP-Tracker.md`](design/MVP-Tracker.md) shows what is built and tested so far, against the
   GDD's MVP acceptance criteria.
 
-**Status:** early development. The graybox town and the first delivery loop work: take an order
-at the board, follow the beam, reach the door before the timer runs out, and get paid by the
-server. Chasers, rides, shops and events come next.
+**Status:** early development. The graybox town follows the World Layout Blueprint (about
+500 m across: town core, residential rings, rural outskirts, market street, cemetery). It has
+the first delivery loop, yard dogs that chase and bite, and a minimap with a full town map. Take
+an order at the board, follow the beam and the map pin, get past the dog, and reach the door
+before the timer runs out. Rides, shops and events come next.
 
 ## Building it
 
@@ -55,9 +57,9 @@ r:Destroy(); print(ok and res or ("runner error: " .. tostring(res)))
 
 | Path | What |
 | --- | --- |
-| `src/shared/` | Rules and data both sides read: `Config`, `Pay`, `Offers`, `PlayerData`, `WorldLayout`, `Data/*` |
-| `src/server/` | Everything that decides money or state: `WorldBuilder`, `DataService` (ProfileStore), `LotService`, `OrderService` |
-| `src/client/` | Input, screens and effects: `Hud`, `Board`, `Waypoint` |
+| `src/shared/` | Rules and data both sides read: `Config`, `Pay`, `Offers`, `ChaserRules`, `PlayerData`, `WorldLayout`, `Data/*` |
+| `src/server/` | Everything that decides money or state: `WorldBuilder`, `DataService` (ProfileStore), `LotService`, `OrderService`, `ChaserService` |
+| `src/client/` | Input, screens and effects: `Hud`, `Board`, `Map`, `Waypoint`, `Chasers` |
 | `tests/` | `*.spec.luau` specs and the `Runner` |
 
 **Rule:** the server decides money. The client only asks ("accept this offer") and never says
