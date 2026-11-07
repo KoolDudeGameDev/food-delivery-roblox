@@ -1,0 +1,63 @@
+{
+  "name": "food-delivery-roblox",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Remotes": {
+        "$className": "Folder",
+        "AcceptOrder": {
+          "$className": "RemoteFunction"
+        },
+        "Buy": {
+          "$className": "RemoteFunction"
+        },
+        "Mount": {
+          "$className": "RemoteEvent"
+        },
+        "Intro": {
+          "$className": "RemoteEvent"
+        },
+        "Notify": {
+          "$className": "RemoteEvent"
+        },
+        "State": {
+          "$className": "RemoteEvent"
+        }
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "ServerStorage": {
+      "Tests": {
+        "$path": "tests"
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "ClockTime": 14,
+        "Brightness": 2.5
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": {
+          "Density": 0.28,
+          "Haze": 1
+        }
+      }
+    }
+  }
+}
