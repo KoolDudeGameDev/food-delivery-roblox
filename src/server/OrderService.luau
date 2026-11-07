@@ -1,0 +1,311 @@
+-- The order board, carried orders, timers, delivery and pay. The server owns all of it
+-- (GDD §13.2): the client only asks to accept an offer, and never says what it earned.
+-- Each player has their own board of offers, as in the prototype.
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Homes = require(ReplicatedStorage.Shared.Data.Homes)
+local Offers = require(ReplicatedStorage.Shared.Offers)
+local Pay = require(ReplicatedStorage.Shared.Pay)
+local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
+local WorldLayout = require(ReplicatedStorage.Shared.WorldLayout)
+local DataService = require(script.Parent.DataService)
+
+local Remotes = ReplicatedStorage.Remotes
+
+local OrderService = {}
+
+local S = Config.STUDS
+local ACCEPT_GAP = 0.25 -- s between one player's accept requests
+local REACH_SLACK = 2 -- m of slack on the hub reach, for lag
+local CARRY_ON_FOOT = 1 -- until rides arrive (milestone 4)
+
+type Order = Offers.Offer & { id: string, deadline: number, fresh: number }
+type State = {
+	offers: { Offers.Offer & { id: string } },
+	offersDeadline: number,
+	orders: { Order },
+	lastHouse: string?,
+	lastAccept: number,
+}
+
+local states: { [Player]: State } = {}
+local rng = Random.new()
+local nextId = 0
+
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+local function isNight(): boolean
+	local t = Lighting.ClockTime -- the day cycle arrives with the world events
+	return t < 6 or t > 18.5
+end
+
+local function rootOf(player: Player): BasePart?
+	local character = player.Character
+	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function flatDistance(a: Vector3, b: Vector3): number
+	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
+end
+
+local function newId(): string
+	nextId += 1
+	return `o{nextId}`
+end
+
+local function notify(player: Player, message)
+	Remotes.Notify:FireClient(player, message)
+end
+
+local function renew(player: Player, state: State, data)
+	local exclude = {}
+	for _, order in state.orders do
+		exclude[order.houseId] = true
+	end
+	if state.lastHouse then
+		exclude[state.lastHouse] = true
+	end
+	state.offers = {}
+	for _, offer in Offers.renew({ rng = rng, maxStars = PlayerData.maxStars(data), exclude = exclude, night = isNight() }) do
+		local withId = table.clone(offer) :: any
+		withId.id = newId()
+		table.insert(state.offers, withId)
+	end
+	state.offersDeadline = now() + Config.OFFER_LIFE
+end
+
+-- Sends the player everything their HUD and board show. Positions are in studs.
+local function push(player: Player)
+	local state, data = states[player], DataService.get(player)
+	if not (state and data) then
+		return
+	end
+	local offers = {}
+	for _, o in state.offers do
+		table.insert(offers, {
+			id = o.id,
+			title = o.title,
+			stars = o.stars,
+			pay = o.pay,
+			max = o.max,
+			food = o.food,
+			regular = (data.regulars[o.houseId] or 0) >= Config.REGULAR_VISITS,
+			problem = Offers.problem(CARRY_ON_FOOT, #state.orders, o),
+		})
+	end
+	local orders = {}
+	for _, o in state.orders do
+		local step = WorldLayout.byId[o.houseId].step
+		table.insert(orders, {
+			id = o.id,
+			title = o.title,
+			food = o.food,
+			stars = o.stars,
+			max = o.max,
+			deadline = o.deadline,
+			fresh = o.fresh,
+			target = WorldLayout.studs(step.x, step.z),
+		})
+	end
+	Remotes.State:FireClient(player, {
+		cash = data.cash,
+		delivered = data.delivered,
+		streak = data.streak,
+		carry = CARRY_ON_FOOT,
+		offers = offers,
+		offersDeadline = state.offersDeadline,
+		orders = orders,
+		hub = WorldLayout.studs(WorldLayout.HUB.x, WorldLayout.HUB.z),
+	})
+end
+
+local function updateSpeed(player: Player)
+	local state = states[player]
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if not (state and humanoid) then
+		return
+	end
+	local parcel = false
+	for _, o in state.orders do
+		parcel = parcel or not o.food
+	end
+	humanoid.WalkSpeed = Config.RUN * S * (if parcel then Config.PARCEL_SLOW else 1)
+end
+
+local function rate(data, stars: number)
+	data.ratingSum += stars
+	data.ratingCount += 1
+end
+
+local function removeOrder(state: State, order: Order): boolean
+	local i = table.find(state.orders, order)
+	if not i then
+		return false
+	end
+	table.remove(state.orders, i)
+	return true
+end
+
+local function timeout(player: Player, state: State, order: Order)
+	local data = DataService.get(player)
+	if not (data and removeOrder(state, order)) then
+		return
+	end
+	rate(data, 1)
+	if data.streak >= 3 then
+		notify(player, { kind = "toast", text = `Streak of {data.streak} lost!` })
+	end
+	data.streak = 0
+	DataService.changed(player)
+	notify(player, { kind = "toast", text = "Too late! Order cancelled, 1 star" })
+	updateSpeed(player)
+	push(player)
+end
+
+local function deliver(player: Player, state: State, order: Order)
+	local data = DataService.get(player)
+	-- Removed before paying, so the same order can never pay twice
+	if not (data and removeOrder(state, order)) then
+		return
+	end
+	local visits = data.regulars[order.houseId] or 0
+	local night = isNight()
+	local result = Pay.delivery(order, {
+		left = math.max(0, order.deadline - now()),
+		fresh = order.fresh,
+		homeBonus = Homes[data.homeTier].bonus,
+		regular = visits >= Config.REGULAR_VISITS,
+		streak = data.streak,
+		eventBonus = 0, -- world events arrive later
+		night = night,
+	})
+	data.cash += result.total
+	data.delivered += 1
+	rate(data, result.rating)
+	data.regulars[order.houseId] = visits + 1
+	data.streak += 1
+	DataService.changed(player)
+	local house = WorldLayout.byId[order.houseId]
+	notify(player, {
+		kind = "paid",
+		title = order.title,
+		pay = order.pay,
+		tip = result.tip,
+		bonus = result.bonus,
+		night = night,
+		total = result.total,
+		rating = result.rating,
+		regularNow = visits + 1 == Config.REGULAR_VISITS and house.name or nil,
+	})
+	updateSpeed(player)
+	push(player)
+end
+
+local function accept(player: Player, offerId: unknown)
+	local state, data = states[player], DataService.get(player)
+	if not (state and data) then
+		return { ok = false, reason = "Still loading" }
+	end
+	if typeof(offerId) ~= "string" or #offerId > 32 then
+		return { ok = false, reason = "Bad request" }
+	end
+	local t = os.clock()
+	if t - state.lastAccept < ACCEPT_GAP then
+		return { ok = false, reason = "Too fast" }
+	end
+	state.lastAccept = t
+	local root = rootOf(player)
+	local hub = WorldLayout.studs(WorldLayout.HUB.x, WorldLayout.HUB.z)
+	if not root or flatDistance(root.Position, hub) > (Config.HUB_REACH + REACH_SLACK) * S then
+		return { ok = false, reason = "Go to the order board" }
+	end
+	local offer
+	for _, o in state.offers do
+		if o.id == offerId then
+			offer = o
+		end
+	end
+	if not offer then
+		return { ok = false, reason = "That offer is gone" }
+	end
+	local problem = Offers.problem(CARRY_ON_FOOT, #state.orders, offer)
+	if problem then
+		return { ok = false, reason = problem }
+	end
+	local order = table.clone(offer) :: any
+	order.deadline = now() + offer.max
+	order.fresh = 100
+	table.insert(state.orders, order)
+	state.lastHouse = offer.houseId
+	renew(player, state, data)
+	notify(player, { kind = "toast", text = if offer.food then "Hot food! Go go go!" else "Parcel: heavy, so you move slower" })
+	updateSpeed(player)
+	push(player)
+	return { ok = true }
+end
+
+local function tick()
+	local t = now()
+	for player, state in states do
+		for _, order in table.clone(state.orders) do
+			local root = rootOf(player)
+			local step = WorldLayout.byId[order.houseId].step
+			if t >= order.deadline then
+				timeout(player, state, order)
+			elseif root and flatDistance(root.Position, WorldLayout.studs(step.x, step.z)) < Config.DELIVER_REACH * S then
+				deliver(player, state, order)
+			end
+		end
+		if t >= state.offersDeadline or #state.offers == 0 then
+			local data = DataService.get(player)
+			if data then
+				renew(player, state, data)
+				push(player)
+			end
+		end
+	end
+end
+
+function OrderService.start()
+	DataService.onLoaded(function(player, data)
+		local state: State = { offers = {}, offersDeadline = 0, orders = {}, lastAccept = 0 }
+		states[player] = state
+		renew(player, state, data)
+		push(player)
+		updateSpeed(player)
+	end)
+	local function watch(player: Player)
+		player.CharacterAdded:Connect(function()
+			task.defer(updateSpeed, player)
+		end)
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, player in Players:GetPlayers() do
+		watch(player)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		states[player] = nil
+	end)
+	Remotes.AcceptOrder.OnServerInvoke = accept
+	local acc = 0
+	RunService.Heartbeat:Connect(function(dt)
+		acc += dt
+		if acc >= 0.1 then
+			acc = 0
+			tick()
+		end
+	end)
+end
+
+-- For tests and probes: the server's view of a player's carried orders and board.
+function OrderService.stateOf(player: Player)
+	return states[player]
+end
+
+return OrderService
