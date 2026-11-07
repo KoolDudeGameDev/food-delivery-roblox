@@ -111,7 +111,7 @@ local function render()
 			for _, p in v.parts do
 				local lv = levels[p.key] or 0
 				local price = p.prices[lv + 1]
-				local adds = if p.speed then `+{p.speed} m/s` else `+{p.carry} carry`
+				local adds = if p.speed then `+{p.speed} m/s` elseif p.accel then `+{p.accel} pickup` else `+{p.carry} carry`
 				row(nextOrder(), p.name, `Level {lv} of {#p.prices} · {adds} each`, if price then `₱{price}` else "Max", price ~= nil and data.cash >= price, `part:{v.key}:{p.key}`)
 			end
 		end

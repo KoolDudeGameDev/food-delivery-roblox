@@ -15,7 +15,16 @@ return {
 	onFootRunsAndCarriesOne = function()
 		local Shop, PlayerData = load()
 		local s = Shop.stats(PlayerData.template())
-		assert(s.speed == 6 and s.carry == 1 and s.key == nil)
+		assert(s.speed == 6 and s.carry == 1 and s.key == nil and s.accel == 30)
+	end,
+	accelPartsQuickenARide = function()
+		local Shop, PlayerData = load()
+		local d = rich(PlayerData, 1000)
+		Shop.buy(d, "ride:rollerblades")
+		assert(Shop.stats(d).accel == 8)
+		assert(Shop.buy(d, "part:rollerblades:laces"))
+		assert(Shop.stats(d).accel == 11, `accel {Shop.stats(d).accel}`)
+		assert(Shop.stats(d).speed == 7.8, "laces don't add speed")
 	end,
 	ridesAreBoughtInOrder = function()
 		local Shop, PlayerData = load()

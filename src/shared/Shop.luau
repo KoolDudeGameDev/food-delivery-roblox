@@ -31,16 +31,17 @@ function Shop.stats(data, key: string?)
 	key = key or (if data.equipped ~= "" then data.equipped else nil)
 	local v = key and Vehicles.byKey[key]
 	if not v then
-		return { key = nil, name = "On foot", speed = Config.RUN, carry = 1 }
+		return { key = nil, name = "On foot", speed = Config.RUN, accel = Config.FOOT_ACCEL, carry = 1 }
 	end
 	local levels = data.parts[v.key] or {}
-	local speed, carry = v.speed, v.carry
+	local speed, accel, carry = v.speed, v.accel, v.carry
 	for _, p in v.parts do
 		local lv = levels[p.key] or 0
 		speed += (p.speed or 0) * lv
+		accel += (p.accel or 0) * lv
 		carry += (p.carry or 0) * lv
 	end
-	return { key = v.key, name = v.name, speed = speed, carry = math.min(carry, Config.MAX_CARRY) }
+	return { key = v.key, name = v.name, speed = speed, accel = accel, carry = math.min(carry, Config.MAX_CARRY) }
 end
 
 -- Tries to buy or use an item. Changes data only on success. Returns ok, a message, and the

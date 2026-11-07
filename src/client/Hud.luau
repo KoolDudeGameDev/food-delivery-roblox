@@ -205,7 +205,7 @@ local function eventText(): string
 		table.insert(parts, "Brownout")
 	end
 	if workspace:GetAttribute("Rain") then
-		table.insert(parts, `Rain +{math.round(Config.RAIN_PAY * 100)}%`)
+		table.insert(parts, `Rain +{math.round(Config.RAIN_PAY * 100)}%, slippery rides`)
 	end
 	local festival = workspace:GetAttribute("Festival")
 	if festival == "fiesta" then

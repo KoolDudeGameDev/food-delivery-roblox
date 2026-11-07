@@ -109,11 +109,14 @@ end
 local function setRain(on: boolean)
 	weather.rain = on
 	workspace:SetAttribute("Rain", on)
+	-- Rain closes in the view: thicker, greyer air and a duller sky (Blueprint §11)
 	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
 	if atmosphere then
-		atmosphere.Density = if on then 0.42 else 0.28
+		atmosphere.Density = if on then 0.5 else 0.28
+		atmosphere.Haze = if on then 2.6 else 1
+		atmosphere.Color = if on then Color3.fromHex("9aa4ad") else Color3.fromHex("c7d4e0")
 	end
-	Lighting.Brightness = if on then 1.6 else 2.5
+	Lighting.Brightness = if on then 1.4 else 2.5
 end
 
 local function setFestival(name: string)

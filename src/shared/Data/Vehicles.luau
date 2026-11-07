@@ -1,11 +1,10 @@
 -- What you can ride, in the order it's bought (prototype `data/vehicles.js`). speed is m/s,
--- carry is how many orders it holds. Each part is levels of one upgrade, one price per level,
--- and what each level adds. The prototype's acceleration-only parts (tighter laces, bigger
--- deck, wider tyres) are left out: Roblox walking has no acceleration to change, and a part
--- that does nothing shouldn't be sold.
+-- accel is how quickly it gets up to speed and turns (client/Grip.luau, rain cuts it), carry is
+-- how many orders it holds. Each part is levels of one upgrade, one price per level, and what
+-- each level adds.
 
-export type Part = { key: string, name: string, prices: { number }, speed: number?, carry: number? }
-export type Vehicle = { key: string, name: string, price: number, speed: number, carry: number, color: Color3, parts: { Part } }
+export type Part = { key: string, name: string, prices: { number }, speed: number?, accel: number?, carry: number? }
+export type Vehicle = { key: string, name: string, price: number, speed: number, accel: number, carry: number, color: Color3, parts: { Part } }
 
 local hex = Color3.fromHex
 
@@ -15,10 +14,12 @@ local Vehicles: { Vehicle } = {
 		name = "Roller blades",
 		price = 300,
 		speed = 7.8,
+		accel = 8,
 		carry = 1,
 		color = hex("4d8de0"),
 		parts = {
 			{ key = "wheels", name = "Faster wheels", prices = { 80, 200 }, speed = 0.8 },
+			{ key = "laces", name = "Tighter laces", prices = { 120 }, accel = 3 },
 			{ key = "pack", name = "Backpack", prices = { 220 }, carry = 1 },
 		},
 	},
@@ -27,10 +28,12 @@ local Vehicles: { Vehicle } = {
 		name = "Skateboard",
 		price = 900,
 		speed = 9.5,
+		accel = 6,
 		carry = 1,
 		color = hex("d6402b"),
 		parts = {
 			{ key = "wheels", name = "Bigger wheels", prices = { 100, 250, 500 }, speed = 1 },
+			{ key = "deck", name = "Bigger deck", prices = { 180, 450 }, accel = 2 },
 			{ key = "crate", name = "Milk crate", prices = { 350 }, carry = 1 },
 		},
 	},
@@ -39,6 +42,7 @@ local Vehicles: { Vehicle } = {
 		name = "Bicycle",
 		price = 2500,
 		speed = 12.5,
+		accel = 5,
 		carry = 1,
 		color = hex("2fae57"),
 		parts = {
@@ -52,10 +56,12 @@ local Vehicles: { Vehicle } = {
 		name = "Moped",
 		price = 7000,
 		speed = 17,
+		accel = 3.5,
 		carry = 1,
 		color = hex("e0443a"),
 		parts = {
 			{ key = "engine", name = "Bigger engine", prices = { 700, 1500, 2800 }, speed = 1.5 },
+			{ key = "tires", name = "Wider tyres", prices = { 600, 1200 }, accel = 1 },
 			{ key = "topBox", name = "Top box", prices = { 1100 }, carry = 1 },
 			{ key = "sidecar", name = "Sidecar", prices = { 2000 }, carry = 2 },
 		},
@@ -65,6 +71,7 @@ local Vehicles: { Vehicle } = {
 		name = "Motorcycle",
 		price = 12000,
 		speed = 20,
+		accel = 4,
 		carry = 1,
 		color = hex("2b2f36"),
 		parts = {
@@ -77,6 +84,7 @@ local Vehicles: { Vehicle } = {
 		name = "Tricycle",
 		price = 18000,
 		speed = 17.5,
+		accel = 3,
 		carry = 3,
 		color = hex("2fb5a8"),
 		parts = {
