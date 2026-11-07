@@ -39,10 +39,16 @@ Config.STREAK_MAX = 0.2
 Config.REGULAR_VISITS = 3
 Config.REGULAR_BONUS = 0.1
 
--- Events (not running yet; Pay takes their bonus as an input)
+-- The day and world events
+Config.DAY_LENGTH = 20 * 60 -- s per full day; the Blueprint's provisional 20-25 min (§11.1), to tune
+Config.START_TIME = 8.6 -- the clock when a server starts (the prototype starts at 0.36 of a day)
 Config.RAIN_PAY = 0.1
 Config.FIESTA_PAY = 0.25
 Config.UNDAS_PAY = 0.5
+-- How often events come and how long they last, in seconds { min, max } (prototype values)
+Config.RAIN_EVERY, Config.RAIN_LASTS = { 150, 300 }, { 50, 80 }
+Config.BROWNOUT_EVERY, Config.BROWNOUT_LASTS = { 60, 140 }, { 20, 35 } -- only at night
+Config.FESTIVAL_EVERY, Config.FESTIVAL_LASTS = { 180, 300 }, { 75, 75 }
 
 -- A size sets how a chaser plays: speed (m/s), bite damage (% of each order's condition),
 -- knock (m/s of knockback), stun (s), danger (difficulty stars), scale (model size).

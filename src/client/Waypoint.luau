@@ -8,6 +8,7 @@ local YELLOW = Color3.fromHex("ffd23f")
 local GREEN = Color3.fromHex("4dff88")
 
 local markers: { Instance } = {}
+local columns: { BasePart } = {}
 
 local function column(at: Vector3, color: Color3)
 	local part = Instance.new("Part")
@@ -21,6 +22,7 @@ local function column(at: Vector3, color: Color3)
 	part.Transparency = 0.6
 	part.Parent = workspace.CurrentCamera
 	table.insert(markers, part)
+	table.insert(columns, part)
 
 	local root = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 	if root then
@@ -46,12 +48,20 @@ function Waypoint.onState(state)
 	for _, m in markers do
 		m:Destroy()
 	end
-	markers = {}
+	markers, columns = {}, {}
 	if #state.orders == 0 then
 		column(state.hub, GREEN)
 	end
 	for _, order in state.orders do
 		column(order.target, YELLOW)
+	end
+end
+
+-- The columns breathe, so they catch the eye without shouting.
+function Waypoint.step(clock: number)
+	local t = 0.55 + math.sin(clock * 3) * 0.15
+	for _, part in columns do
+		part.Transparency = t
 	end
 end
 

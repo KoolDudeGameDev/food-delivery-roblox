@@ -1,10 +1,13 @@
 -- The HUD, laid out like the prototype: a small stats card top left (cash, stamina, rating,
 -- streak), the job card top centre (an arrow to the next door, distance, the order, its time
 -- and freshness bars), toasts in the middle, and a hint line at the bottom.
+local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local WorldClock = require(ReplicatedStorage.Shared.WorldClock)
 local Ui = require(script.Parent.Ui)
 
 local Hud = {}
@@ -19,6 +22,8 @@ local cashLabel: TextLabel
 local staminaFill: Frame
 local ratingTag: TextLabel
 local streakTag: TextLabel
+local nightTag: TextLabel
+local eventTag: TextLabel
 local job: Frame
 local arrow: TextLabel
 local distLabel: TextLabel
@@ -94,6 +99,8 @@ function Hud.mount(screen: ScreenGui)
 	staminaFill = bar(stats, Color3.fromHex("6cc6ff"), 3, 130)
 	ratingTag = text(stats, "", 12, GOLD, 4, { Font = Enum.Font.Gotham })
 	streakTag = text(stats, "", 12, GOLD, 5, { Font = Enum.Font.Gotham })
+	nightTag = text(stats, `Night pay +{math.round((Config.NIGHT_PAY - 1) * 100)}%`, 12, GOLD, 6, { Font = Enum.Font.Gotham, Visible = false })
+	eventTag = text(stats, "", 12, Color3.fromHex("8fd6ff"), 7, { Font = Enum.Font.Gotham, Visible = false })
 
 	-- The job card, top centre
 	job = card(screen, "Job", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 10), Visible = false })
@@ -139,7 +146,17 @@ function Hud.toast(message: string, color: Color3?)
 	}, { Ui.corner(12), Ui.pad(8) })
 	local label = Ui.label(message, 17, WHITE, { Parent = toast, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Center })
 	Ui.make("UISizeConstraint", { Parent = label, MaxSize = Vector2.new(400, math.huge) })
-	task.delay(3, function()
+	-- Fade in, hold, fade out
+	local shown = toast.BackgroundTransparency
+	toast.BackgroundTransparency, label.TextTransparency = 1, 1
+	local quick = TweenInfo.new(0.18)
+	TweenService:Create(toast, quick, { BackgroundTransparency = shown }):Play()
+	TweenService:Create(label, quick, { TextTransparency = 0 }):Play()
+	task.delay(2.8, function()
+		local out = TweenInfo.new(0.35)
+		TweenService:Create(toast, out, { BackgroundTransparency = 1 }):Play()
+		TweenService:Create(label, out, { TextTransparency = 1 }):Play()
+		task.wait(0.36)
 		toast:Destroy()
 	end)
 end
@@ -181,8 +198,29 @@ local function nearest(root: BasePart)
 	return best, bestD
 end
 
--- Every frame: the stamina bar and the job card.
+-- What's on in town right now, for the stats card (the prototype's eventTag).
+local function eventText(): string
+	local parts = {}
+	if workspace:GetAttribute("Brownout") then
+		table.insert(parts, "Brownout")
+	end
+	if workspace:GetAttribute("Rain") then
+		table.insert(parts, `Rain +{math.round(Config.RAIN_PAY * 100)}%`)
+	end
+	local festival = workspace:GetAttribute("Festival")
+	if festival == "fiesta" then
+		table.insert(parts, `Fiesta: food +{math.round(Config.FIESTA_PAY * 100)}%`)
+	elseif festival == "undas" then
+		table.insert(parts, `Undas: cemetery +{math.round(Config.UNDAS_PAY * 100)}%`)
+	end
+	return table.concat(parts, " · ")
+end
+
+-- Every frame: the stamina bar, the tags and the job card.
 function Hud.step(serverNow: number)
+	nightTag.Visible = WorldClock.isNight(Lighting.ClockTime)
+	local events = eventText()
+	eventTag.Text, eventTag.Visible = events, events ~= ""
 	local player = Players.LocalPlayer
 	local stamina = (player:GetAttribute("Stamina") or 100) / 100
 	staminaFill.Size = UDim2.fromScale(math.clamp(stamina, 0, 1), 1)

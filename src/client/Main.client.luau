@@ -8,8 +8,10 @@ local Board = require(script.Parent.Board)
 local Chasers = require(script.Parent.Chasers)
 local Hud = require(script.Parent.Hud)
 local Map = require(script.Parent.Map)
+local Riding = require(script.Parent.Riding)
 local ShopPanel = require(script.Parent.ShopPanel)
 local Waypoint = require(script.Parent.Waypoint)
+local Weather = require(script.Parent.Weather)
 
 local Remotes = ReplicatedStorage.Remotes
 local player = Players.LocalPlayer
@@ -28,6 +30,7 @@ Board.mount(screen)
 Map.mount(screen)
 ShopPanel.mount(screen)
 Chasers.start()
+Weather.start()
 
 local latest
 Remotes.State.OnClientEvent:Connect(function(state)
@@ -90,6 +93,9 @@ RunService.RenderStepped:Connect(function(dt)
 	Board.step(now)
 	Map.step()
 	Chasers.step(dt, os.clock())
+	Riding.step()
+	Weather.step()
+	Waypoint.step(os.clock())
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root and openedAt and (root.Position - openedAt).Magnitude > 40 then
 		Board.close()

@@ -1,12 +1,12 @@
 -- The order board, carried orders, timers, delivery and pay. The server owns all of it
 -- (GDD §13.2): the client only asks to accept an offer, and never says what it earned.
 -- Each player has their own board of offers, as in the prototype.
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Goals = require(ReplicatedStorage.Shared.Goals)
 local Homes = require(ReplicatedStorage.Shared.Data.Homes)
 local Offers = require(ReplicatedStorage.Shared.Offers)
 local OrderTypes = require(ReplicatedStorage.Shared.Data.OrderTypes)
@@ -14,8 +14,10 @@ local Pay = require(ReplicatedStorage.Shared.Pay)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local WorldLayout = require(ReplicatedStorage.Shared.WorldLayout)
 local Shop = require(ReplicatedStorage.Shared.Shop)
+local WorldClock = require(ReplicatedStorage.Shared.WorldClock)
 local DataService = require(script.Parent.DataService)
 local MoveService = require(script.Parent.MoveService)
+local WorldService = require(script.Parent.WorldService)
 
 local Remotes = ReplicatedStorage.Remotes
 
@@ -42,9 +44,11 @@ local function now(): number
 	return workspace:GetServerTimeNow()
 end
 
-local function isNight(): boolean
-	local t = Lighting.ClockTime -- the day cycle arrives with the world events
-	return t < 6 or t > 18.5
+local isNight = WorldService.isNight
+
+-- Today's date on the server's clock, the same in every server, so goals match for everyone.
+local function today(): string
+	return os.date("!%Y-%m-%d") :: string
 end
 
 local function rootOf(player: Player): BasePart?
@@ -80,6 +84,17 @@ local function renew(player: Player, state: State, data)
 		table.insert(state.offers, withId)
 	end
 	state.offersDeadline = now() + Config.OFFER_LIFE
+end
+
+-- Today's goals as the board shows them.
+local function goalLines(data)
+	data.goals = Goals.current(data.goals, today())
+	local lines = {}
+	for _, g in data.goals.list do
+		local t = Goals.TYPES[g.type]
+		table.insert(lines, { text = t.text, progress = g.progress, count = t.count, reward = t.reward, done = g.done })
+	end
+	return lines
 end
 
 -- Sends the player everything their HUD and board show. Positions are in studs.
@@ -122,6 +137,7 @@ local function push(player: Player)
 		streak = data.streak,
 		carry = carry,
 		rating = if data.ratingCount > 0 then data.ratingSum / data.ratingCount else nil,
+		goals = goalLines(data),
 		homeTier = data.homeTier,
 		owned = data.owned,
 		parts = data.parts,
@@ -187,7 +203,7 @@ local function deliver(player: Player, state: State, order: Order)
 		homeBonus = Homes[data.homeTier].bonus,
 		regular = visits >= Config.REGULAR_VISITS,
 		streak = data.streak,
-		eventBonus = 0, -- world events arrive later
+		eventBonus = WorldClock.eventBonus(WorldService.weather(), order.food, order.houseId),
 		night = night,
 	})
 	data.cash += result.total
@@ -195,8 +211,21 @@ local function deliver(player: Player, state: State, order: Order)
 	rate(data, result.rating)
 	data.regulars[order.houseId] = visits + 1
 	data.streak += 1
-	DataService.changed(player)
 	local house = WorldLayout.byId[order.houseId]
+	-- Daily goals, counted from the server's own events (GDD §10.2)
+	local goals = Goals.current(data.goals, today())
+	data.goals = goals
+	local reward = Goals.count(goals, "delivered", 1)
+		+ (if house.dog then Goals.count(goals, "dogYard", 1) else 0)
+		+ (if result.rating == 5 then Goals.count(goals, "fiveStar", 1) else 0)
+		+ (if order.stars >= 4 then Goals.count(goals, "hardOrder", 1) else 0)
+		+ (if order.houseId == "cemetery" and night then Goals.count(goals, "cemeteryNight", 1) else 0)
+		+ Goals.count(goals, "streak", data.streak)
+	data.cash += reward
+	DataService.changed(player)
+	if reward > 0 then
+		notify(player, { kind = "toast", text = `Goal done! +₱{reward}` })
+	end
 	notify(player, {
 		kind = "paid",
 		title = order.title,

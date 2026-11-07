@@ -8,10 +8,24 @@ local Board = {}
 local panel: Frame
 local list: Frame
 local note: TextLabel
+local goalList: Frame
 local current = { offers = {}, offersDeadline = 0, orders = {}, carry = 1 }
 local busy = false
 
+local function renderGoals()
+	for _, child in goalList:GetChildren() do
+		if child:IsA("TextLabel") then
+			child:Destroy()
+		end
+	end
+	for i, g in current.goals or {} do
+		local line = if g.done then `{g.text}: done` else `{g.text}: {g.progress} of {g.count}, ₱{g.reward}`
+		Ui.label(line, 14, if g.done then Ui.GOOD else Ui.MUTED, { Parent = goalList, LayoutOrder = i })
+	end
+end
+
 local function render()
+	renderGoals()
 	for _, child in list:GetChildren() do
 		if child:IsA("Frame") then
 			child:Destroy()
@@ -89,9 +103,17 @@ function Board.mount(screen: ScreenGui)
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 	}, { Ui.make("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	Ui.label("Today's goals", 16, Ui.INK, { Parent = panel, LayoutOrder = 3, Font = Enum.Font.FredokaOne })
+	goalList = Ui.make("Frame", {
+		Parent = panel,
+		LayoutOrder = 4,
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+	}, { Ui.make("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }) })
 	local close = Ui.make("TextButton", {
 		Parent = panel,
-		LayoutOrder = 3,
+		LayoutOrder = 5,
 		Size = UDim2.new(1, 0, 0, 44),
 		Text = "Close",
 		TextSize = 18,

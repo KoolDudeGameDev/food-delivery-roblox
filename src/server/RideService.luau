@@ -21,6 +21,10 @@ local TICK = 0.1
 local hex = Color3.fromHex
 local DARK, STEEL = hex("222222"), hex("b8bec6")
 
+-- How far each ride lifts its rider off the ground, in metres (the prototype's seat), so they
+-- stand on the deck or sit on the saddle instead of sinking into it.
+local SEAT = { rollerblades = 0.2, skateboard = 0.3, bicycle = 0.45, moped = 0.35, motorcycle = 0.45, tricycle = 0.35 }
+
 type Ride = { key: string, model: Model, parkedAt: string? }
 local rides: { [Player]: Ride } = {}
 local parkedFolder: Folder
@@ -131,6 +135,16 @@ local function rootOf(player: Player): BasePart?
 	return player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
+-- Raises (or, with 0, lowers back) the rider: HipHeight from the character's own base.
+local function lift(humanoid: Humanoid, metres: number)
+	local base = humanoid:GetAttribute("BaseHipHeight")
+	if base == nil then
+		base = humanoid.HipHeight
+		humanoid:SetAttribute("BaseHipHeight", base)
+	end
+	humanoid.HipHeight = base + metres * S
+end
+
 local function setLoose(model: Model)
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
@@ -146,7 +160,9 @@ local function mount(player: Player, ride: Ride)
 	if not (root and humanoid) then
 		return
 	end
-	-- A character faces -z and the ride faces +z, hence the half turn
+	lift(humanoid, SEAT[ride.key] or 0)
+	-- A character faces -z and the ride faces +z, hence the half turn. Placed from the raised hip
+	-- height, so once the body rises the ride's wheels are on the ground.
 	local feet = root.CFrame * CFrame.new(0, -(humanoid.HipHeight + root.Size.Y / 2), 0) * CFrame.Angles(0, math.pi, 0)
 	ride.model:PivotTo(feet)
 	for _, p in ride.model:GetDescendants() do
@@ -177,6 +193,10 @@ local function park(player: Player, ride: Ride, house)
 	ride.model:PivotTo(CFrame.new(WorldLayout.studs(spot.x, spot.z)) * CFrame.Angles(0, math.atan2(house.dx, house.dz), 0))
 	ride.model.Parent = parkedFolder
 	ride.parkedAt = house.id
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		lift(humanoid, 0)
+	end
 	MoveService.setRide(player, nil)
 end
 
@@ -190,11 +210,16 @@ function RideService.refresh(player: Player)
 	local data = DataService.get(player)
 	if not (data and data.equipped ~= "") then
 		MoveService.setRide(player, nil)
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			lift(humanoid, 0)
+		end
 		return
 	end
 	local v = Vehicles.byKey[data.equipped]
 	local model = build(v.key, data.parts[v.key] or {}, v.color)
 	model.Name = `{player.Name}_{v.key}`
+	model:SetAttribute("Ride", v.key) -- the client picks a riding pose from this
 	setLoose(model)
 	local ride = { key = v.key, model = model }
 	rides[player] = ride

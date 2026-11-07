@@ -437,7 +437,97 @@ local function buildLots()
 	end
 end
 
+-- Studio's Baseplate template puts a grey Baseplate with its top at y = 0, exactly where our
+-- ground's top is: the two fight and the grass flickers. The browser prototype had nothing under
+-- its grass, so it never showed. Clear the template's pieces, and spawn in the hub yard.
+local function clearTemplate()
+	for _, child in workspace:GetChildren() do
+		if child.Name == "Baseplate" or child:IsA("SpawnLocation") then
+			child:Destroy()
+		end
+	end
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "HubSpawn"
+	spawn.Anchored = true
+	spawn.Neutral = true
+	spawn.Duration = 0 -- no force field
+	spawn.Size = Vector3.new(6 * S, 0.2, 6 * S)
+	spawn.Position = Vector3.new(10 * S, LAYER.detail - 0.1, -9 * S)
+	spawn.Transparency, spawn.CanCollide, spawn.CanQuery, spawn.CanTouch = 1, false, false, false
+	spawn.Parent = workspace
+end
+
+-- Street lamps along both rings (the prototype's spots). WorldService lights them at night and
+-- puts them out in a brownout.
+local function buildStreetlights()
+	local lamps = folder("Streetlights", world.TownCenter)
+	local side = WorldLayout.ROAD_W / 2 + 0.9
+	for _, ring in { WorldLayout.RING, WorldLayout.OUTER } do
+		local step = if ring == WorldLayout.RING then 24 else 42
+		for a = -ring + 12, ring - 6, step do
+			if math.abs(a) < WorldLayout.ROAD_W then
+				continue -- a junction with a spoke
+			end
+			for _, s in { -1, 1 } do
+				for _, spot in { { a, s * (ring + side), 0, -s }, { s * (ring + side), a, -s, 0 } } do
+					local x, z, ox, oz = spot[1], spot[2], spot[3], spot[4]
+					block(lamps, "Post", 0.25, 5.2, 0.25, hex("4a5058"), x, 2.6, z)
+					block(lamps, "Arm", if ox ~= 0 then 1.4 else 0.16, 0.16, if oz ~= 0 then 1.4 else 0.16, hex("4a5058"), x + ox * 0.7, 5.2, z + oz * 0.7)
+					local bulb = block(lamps, "Bulb", 0.4, 0.16, 0.4, hex("8a8f96"), x + ox * 1.3, 5.05, z + oz * 1.3)
+					bulb.CanCollide = false
+					local light = Instance.new("PointLight")
+					light.Range = 12 * S -- a 12 m pool of light
+					light.Brightness = 1.6
+					light.Color = hex("ffd9a0")
+					light.Shadows = false
+					light.Enabled = false
+					light.Parent = bulb
+					CollectionService:AddTag(bulb, "Streetlight")
+				end
+			end
+		end
+	end
+end
+
+-- Fiesta bunting round the hub yard, and Undas visitors by the graves: hidden until their event.
+local function buildEventProps()
+	local bunting = folder("FiestaBunting", world.LogisticsDistrict)
+	local y = WorldLayout.HUB_YARD
+	local colors = { hex("e0443a"), hex("ffd23f"), hex("4d8de0"), hex("3fae68") }
+	local corners = {
+		{ y.x - y.w / 2, y.z - y.d / 2 },
+		{ y.x + y.w / 2, y.z - y.d / 2 },
+		{ y.x + y.w / 2, y.z + y.d / 2 },
+		{ y.x - y.w / 2, y.z + y.d / 2 },
+	}
+	local n = 0
+	for i, a in corners do
+		local b = corners[i % 4 + 1]
+		local len = math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2)
+		for t = 0.6, len - 0.6, 1.2 do
+			n += 1
+			local f = t / len
+			local flag = block(bunting, "Flag", 0.55, 0.5, 0.1, colors[n % 4 + 1], a[1] + (b[1] - a[1]) * f, 4.6 + math.sin(n * 1.6) * 0.2, a[2] + (b[2] - a[2]) * f)
+			flag.CanCollide, flag.Transparency = false, 1
+			flag.CFrame = CFrame.new(flag.Position) * CFrame.Angles(0, math.atan2(b[1] - a[1], b[2] - a[2]) + math.pi / 2, 0)
+		end
+	end
+	local c = WorldLayout.CEMETERY
+	local visitors = folder("UndasVisitors", world.CemeteryDistrict)
+	for _, v in { { 81, 80, "2b2f36" }, { 90, 84, "f1efe9" }, { 99, 96, "2b2f36" }, { 84, 92, "4d5563" } } do
+		local x, z = v[1] + c.ox, v[2] + c.oz
+		for _, piece in {
+			block(visitors, "Shirt", 0.9, 1.1, 0.5, hex(v[3]), x, 1.55, z),
+			block(visitors, "Head", 0.7, 0.7, 0.7, hex("c99a6b"), x, 2.45, z),
+			block(visitors, "Legs", 0.8, 1, 0.46, hex("2b3a55"), x, 0.5, z),
+		} do
+			piece.CanCollide, piece.Transparency = false, 1
+		end
+	end
+end
+
 function WorldBuilder.build()
+	clearTemplate()
 	world = folder("World", workspace)
 	gameplay = folder("Gameplay", workspace)
 	world:ClearAllChildren()
@@ -460,6 +550,8 @@ function WorldBuilder.build()
 	end
 	buildCemetery()
 	buildLots()
+	buildStreetlights()
+	buildEventProps()
 end
 
 return WorldBuilder

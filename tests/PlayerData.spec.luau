@@ -60,6 +60,16 @@ return {
 		assert(d.parts.bicycle.basket == 1 and d.parts.bicycle.rocket == nil and d.parts.hoverboard == nil)
 		assert(d.equipped == "", "riding something not owned")
 	end,
+	sanitizeKeepsGoodGoalsAndDropsBadOnes = function()
+		local PlayerData = load()
+		local d = PlayerData.template()
+		d.goals = { day = "2026-11-07", list = { { type = 1, progress = 99, done = true }, { type = 2, progress = 1 }, { type = 3, progress = -4 } } }
+		PlayerData.sanitize(d)
+		assert(d.goals.day == "2026-11-07" and d.goals.list[1].progress == 8 and d.goals.list[3].progress == 0)
+		d.goals = { day = "2026-11-07", list = { { type = 99 }, { type = 1 }, { type = 2 } } }
+		PlayerData.sanitize(d)
+		assert(d.goals.day == "" and #d.goals.list == 0, "an unknown goal type resets the day")
+	end,
 	sanitizeKeepsGoodData = function()
 		local PlayerData = load()
 		local d = PlayerData.template()

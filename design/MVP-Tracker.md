@@ -28,8 +28,9 @@ Statuses: Not Started, In Progress, Blocked, Testing, Completed.
 | 1. Concept validation and game design | Completed | GDD v1.0 and World Layout Blueprint v0.1 |
 | 2. Technical foundation and architecture | Testing | Rojo, Rokit, remotes, ProfileStore, shared rules with tests, the Blueprint §15 hierarchy |
 | 3. Core gameplay | Testing | The delivery loop, chasers, and a minimap and town map are built |
-| 4. Progression and economy | In Progress | Rides, parts, gate parking, sprint, the dealer, mechanic and home shops. Paint, garden decor, daily goals and the economy balance pass are still to do |
-| 5–9 | Not Started | |
+| 4. Progression and economy | In Progress | Rides, parts, gate parking, sprint, the dealer, mechanic and home shops, and daily goals (3 a day, the same for everyone). Paint, garden decor and the economy balance pass are still to do |
+| 6. Events (launch foundation, GDD §10.1) | In Progress | A 20-minute day and night clock with night pay and street lamps, rain (+10%), brownouts (lamps out, at night), fiesta (food +25%, bunting) and Undas (cemetery +50%, visitors), all run on the server so the town is shared |
+| 5, 7–9 | Not Started | |
 
 ## Open decisions (GDD §16, Blueprint §17)
 
@@ -58,3 +59,8 @@ value to tune:
 - Acceleration parts. The prototype's tighter laces, bigger deck and wider tyres only improved
   acceleration. Roblox walking has no acceleration setting, so these parts aren't sold until
   acceleration is modelled.
+- Day length is 20 minutes, the lower end of the Blueprint's provisional 20–25 minute target
+  (§11.1). The prototype used 6 minutes. To tune.
+- Rain doesn't reduce grip yet. The prototype's 55% grip needs acceleration, which Roblox walking
+  doesn't have. It pays +10% and looks wet.
+- The "finish a shady job" daily goal waits for night jobs.

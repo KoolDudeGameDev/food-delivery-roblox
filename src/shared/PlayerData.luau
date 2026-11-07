@@ -1,5 +1,6 @@
 -- What a player's save holds, its defaults, and the check every save gets when it loads
 -- (GDD §13.4). A new saved field needs a default here and a check in sanitize.
+local Goals = require(script.Parent.Goals)
 local Homes = require(script.Parent.Data.Homes)
 local Vehicles = require(script.Parent.Data.Vehicles)
 local WorldLayout = require(script.Parent.WorldLayout)
@@ -20,6 +21,7 @@ export type Data = {
 	owned: { [string]: boolean }, -- rides by key
 	parts: { [string]: { [string]: number } }, -- part levels, by ride then part
 	equipped: string, -- a ride key, or "" on foot
+	goals: { day: string, list: { { type: number, progress: number, done: boolean } } },
 }
 
 function PlayerData.template(): Data
@@ -35,6 +37,7 @@ function PlayerData.template(): Data
 		owned = {},
 		parts = {},
 		equipped = "",
+		goals = { day = "", list = {} },
 	}
 end
 
@@ -79,6 +82,24 @@ function PlayerData.sanitize(data: Data): Data
 	end
 	data.owned, data.parts = owned, parts
 	data.equipped = if type(data.equipped) == "string" and owned[data.equipped] then data.equipped else ""
+	-- Goals: a day string and three known goals, or nothing (a fresh set comes on use)
+	local goals = { day = "", list = {} }
+	local saved = data.goals
+	if type(saved) == "table" and type(saved.day) == "string" and type(saved.list) == "table" and #saved.list == Goals.COUNT then
+		local ok = true
+		for _, g in saved.list do
+			local t = type(g) == "table" and Goals.TYPES[g.type]
+			ok = ok and t ~= nil and t ~= false
+		end
+		if ok then
+			goals.day = saved.day
+			for _, g in saved.list do
+				local t = Goals.TYPES[g.type]
+				table.insert(goals.list, { type = g.type, progress = math.min(count(g.progress), t.count), done = g.done == true })
+			end
+		end
+	end
+	data.goals = goals
 	data.version = PlayerData.VERSION
 	return data
 end
