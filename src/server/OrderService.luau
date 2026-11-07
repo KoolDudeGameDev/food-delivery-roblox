@@ -150,6 +150,48 @@ local function push(player: Player)
 end
 
 -- Parcels are heavy: carrying one slows you down.
+-- What you carry, in your arms where everyone can see it (Blueprint §13, package handling): a
+-- red insulated bag for food, a brown box for a parcel, stacked, darker and more crooked the
+-- more it's been knocked about.
+local FOOD_BAG, PARCEL_BOX, WRECKED = Color3.fromHex("d6402b"), Color3.fromHex("b98a56"), Color3.fromHex("4a4038")
+
+local function syncCarry(player: Player)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return
+	end
+	local old = character:FindFirstChild("CarriedOrders")
+	if old then
+		old:Destroy()
+	end
+	local state = states[player]
+	if not (state and #state.orders > 0) then
+		return
+	end
+	local stack = Instance.new("Model")
+	stack.Name = "CarriedOrders"
+	local y = 0.05
+	for i, o in state.orders do
+		local wear = 1 - o.fresh / 100
+		local size = if o.food then Vector3.new(0.7, 0.5, 0.5) else Vector3.new(0.8, 0.6, 0.6)
+		local box = Instance.new("Part")
+		box.Name = if o.food then "FoodBag" else "Parcel"
+		box.Size = size * S
+		box.Color = (if o.food then FOOD_BAG else PARCEL_BOX):Lerp(WRECKED, wear * 0.7)
+		box.CanCollide, box.CanQuery, box.CanTouch, box.Massless = false, false, false, true
+		-- In front of the chest (a character faces -z), each one on the last, tilted by its damage
+		box.CFrame = root.CFrame * CFrame.new(0, (y + size.Y / 2) * S, -0.85 * S) * CFrame.Angles(wear * 0.35, (i % 2 - 0.5) * wear * 0.6, 0)
+		y += size.Y
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0, weld.Part1 = root, box
+		weld.Parent = box
+		box.Parent = stack
+	end
+	stack.Parent = character
+end
+
+-- Parcels are heavy: carrying one slows you down. Also refreshes what you're seen carrying.
 local function updateSpeed(player: Player)
 	local state = states[player]
 	local parcel = false
@@ -157,6 +199,7 @@ local function updateSpeed(player: Player)
 		parcel = parcel or not o.food
 	end
 	MoveService.setParcel(player, parcel)
+	syncCarry(player)
 end
 
 local function rate(data, stars: number)
@@ -280,6 +323,7 @@ local function accept(player: Player, offerId: unknown)
 	state.lastHouse = offer.houseId
 	renew(player, state, data)
 	notify(player, { kind = "toast", text = if offer.food then "Hot food! Go go go!" else "Parcel: heavy, so you move slower" })
+	notify(player, { kind = "accepted", food = offer.food }) -- the conveyor brings it out
 	updateSpeed(player)
 	push(player)
 	return { ok = true }
@@ -355,6 +399,7 @@ function OrderService.hurt(player: Player, amount: number)
 		data.streak = 0
 		DataService.changed(player)
 	end
+	syncCarry(player) -- the box looks the worse for it
 	push(player)
 end
 

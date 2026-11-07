@@ -179,6 +179,10 @@ local function buildHub()
 		sign(warehouse, "ORDERS", 11, 2.8, w.x, 8.9, front + 0.1, 0, hex("d6402b"), Color3.new(1, 1, 1))
 	end
 	block(warehouse, "Counter", w.w - 1.4, 1.1, 1.2, hex("6a6f78"), w.x, 0.7, front - 0.6, Enum.Material.Metal)
+	-- The conveyor belt along the counter top: packages ride it to the pickup point in the middle
+	-- (client/Conveyor.luau moves them)
+	block(warehouse, "Belt", w.w - 2, 0.06, 0.9, hex("2b2f36"), w.x, 1.28, front - 0.6)
+	block(warehouse, "PickupMark", 1.2, 0.07, 1, hex("ffd23f"), w.x, 1.29, front - 0.6, Enum.Material.Neon)
 
 	-- The order board: the prompt opens it, and accepting is checked against HUB_REACH from here
 	local board = block(logistics, "OrderBoard", 4, 2.6, 0.3, hex("2b2f36"), hub.x, 1.9, hub.z - 2.6)

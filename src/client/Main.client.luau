@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 
 local Board = require(script.Parent.Board)
 local Chasers = require(script.Parent.Chasers)
+local Conveyor = require(script.Parent.Conveyor)
 local Gates = require(script.Parent.Gates)
 local Hud = require(script.Parent.Hud)
 local Map = require(script.Parent.Map)
@@ -32,6 +33,7 @@ Map.mount(screen)
 ShopPanel.mount(screen)
 Chasers.start()
 Gates.start()
+Conveyor.start()
 Weather.start()
 
 local latest
@@ -45,6 +47,9 @@ Remotes.State.OnClientEvent:Connect(function(state)
 end)
 Remotes.Notify.OnClientEvent:Connect(function(message)
 	Hud.onNotify(message)
+	if message.kind == "accepted" then
+		task.spawn(Conveyor.accepted, message.food == true)
+	end
 	if message.kind == "paid" and message.houseId then
 		Gates.delivered(message.houseId, message.total)
 	end
@@ -99,6 +104,7 @@ RunService.RenderStepped:Connect(function(dt)
 	Map.step()
 	Chasers.step(dt, os.clock())
 	Riding.step()
+	Conveyor.step(dt)
 	Weather.step()
 	Waypoint.step(os.clock())
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
