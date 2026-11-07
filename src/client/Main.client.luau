@@ -4,6 +4,7 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Audio = require(script.Parent.Audio)
 local Board = require(script.Parent.Board)
 local Chasers = require(script.Parent.Chasers)
 local Conveyor = require(script.Parent.Conveyor)
@@ -38,6 +39,7 @@ Gates.start()
 Conveyor.start()
 Grip.start()
 Weather.start()
+Audio.start()
 
 local latest
 Remotes.State.OnClientEvent:Connect(function(state)
@@ -53,6 +55,9 @@ Remotes.Notify.OnClientEvent:Connect(function(message)
 	Hud.onNotify(message)
 	if message.kind == "accepted" then
 		task.spawn(Conveyor.accepted, message.food == true)
+	end
+	if message.kind == "paid" then
+		Audio.paid()
 	end
 	if message.kind == "paid" and message.houseId then
 		Gates.delivered(message.houseId, message.total)
@@ -112,6 +117,7 @@ RunService.RenderStepped:Connect(function(dt)
 	Lights.step()
 	Weather.step()
 	Waypoint.step(os.clock())
+	Audio.step(dt, os.clock())
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root and openedAt and (root.Position - openedAt).Magnitude > 40 then
 		Board.close()

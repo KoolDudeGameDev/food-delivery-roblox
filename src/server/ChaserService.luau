@@ -180,6 +180,7 @@ function ChaserService.start()
 			model:SetAttribute("Chasing", false)
 			model:SetAttribute("State", "idle")
 			model:SetAttribute("Call", breed.call or "WOOF!")
+			model:SetAttribute("Sound", breed.sound or "bark") -- a key in Data/Sounds
 			table.insert(entries, { dog = dog, model = model, breed = breed })
 		end
 	end
