@@ -1,8 +1,9 @@
 # Credits
 
 Every model, mesh, texture and sound that isn't made in this repository is listed here, with
-its source. Creator Store models are vetted before use: every script is removed, and anything
-using `require(<id>)`, `loadstring` or `getfenv` is rejected.
+its source. Creator Store models are vetted before use: every script is removed, so is every
+sound inside a model that isn't listed under Sounds below, and anything using `require(<id>)`,
+`loadstring` or `getfenv` is rejected.
 
 ## Code
 
@@ -17,7 +18,7 @@ script removed. Houseplant_Leaf's Filipino houses are released "for public use",
 
 | Role | Asset | Creator | Asset id |
 | --- | --- | --- | --- |
-| `SariSari` | Sari-Sari Store | Skyblue2005 | [264475453](https://create.roblox.com/store/asset/264475453) |
+| `SariSari` | Sari-Sari Store (its radio's 12 third-party songs removed, 2026-11-08) | Skyblue2005 | [264475453](https://create.roblox.com/store/asset/264475453) |
 | `House_small` | Filipino House: Bahay Kubo #2 | Houseplant_Leaf | [6811407916](https://create.roblox.com/store/asset/6811407916) |
 | `House_medium` | Filipino House: Bahay Kubo #4 | Houseplant_Leaf | [10019835987](https://create.roblox.com/store/asset/10019835987) |
 | `Stall` | Vender Stand | Jademc123 | [2024564431](https://create.roblox.com/store/asset/2024564431) |
