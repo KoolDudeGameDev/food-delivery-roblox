@@ -115,6 +115,9 @@ local function runners(): ({ ChaserRules.Runner }, { [string]: Player })
 	return list, byId
 end
 
+-- Every live player as a runner (metres, feet height): the White Lady uses it too
+ChaserService.runners = runners
+
 local function bite(player: Player, entry: Entry)
 	local kind = Config.DOG_TYPES[entry.breed.size]
 	local carrying = OrderService.carrying(player) > 0

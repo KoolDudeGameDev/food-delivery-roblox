@@ -34,7 +34,6 @@ Added by Gregory, 2026-11-08: **ride hits**. A fast rider sends whoever they hit
 
 Beyond the MVP but in the existing design, not started:
 - night jobs (shady packages and police);
-- the White Lady;
 - citizens and road traffic.
 
 ## MVP acceptance criteria (GDD §14.3)
@@ -96,7 +95,7 @@ priority: gameplay first, polish after.
 5. **Economy check** (GDD §16): simulated 2026-11-08 ([Economy-Check.md](Economy-Check.md)): first
    ride at about minute 6, first home upgrade at about 10. Gregory sets the targets, the bonus cap
    and the failure payout; the bulk playtest checks the real minutes.
-6. **Night content:** the White Lady, then shady jobs and police. The casual target means
+6. **Night content:** ~~the White Lady~~ built 2026-11-08 (prototype `ghost.js`: cemetery after dark, 3.4 m/s, 40% order damage, far-corner return; `workspace.SetClock` jumps the day for playtests). Next: shady jobs and police. The casual target means
    reviewing the 25% arrest cost first (GDD Appendix A).
 7. **Living town:** citizens and road traffic.
 8. **Phase 8:**
@@ -156,7 +155,7 @@ The roads meet only at T-junctions (§5.2), and corridors run north, south and s
 | Road network | Built: T-junctions only, footpath shortcuts, signs |
 | Customer-house distribution | Built: 7/7/7 |
 | Home-lot layout | Built: spread round town, fenced |
-| Encounter geography | Built: yards, alert-then-chase. The White Lady (§9.3) is next |
+| Encounter geography | Built: yards, alert-then-chase, and the White Lady in the cemetery at night (2026-11-08) |
 | Environmental behaviour | Built: day and night, staggered lamps and windows, brownout, rain visibility and grip, fiesta, Undas |
 | Animation (§13) | Built: dogs, gates, doors, the conveyor, package handling, lights, riding poses. Wind on trees and flags is not built |
 | Audio direction (§12) | Built: beds by district and time (birds, rural, crickets, rain and thunder), placed street walla, conveyor, cemetery wind, fiesta music, barks from the dog, the till on pay. Needs a listen |
