@@ -2,7 +2,6 @@
 -- (GDD §13.4). A new saved field needs a default here and a check in sanitize.
 local Goals = require(script.Parent.Goals)
 local Homes = require(script.Parent.Data.Homes)
-local Looks = require(script.Parent.Data.Looks)
 local Vehicles = require(script.Parent.Data.Vehicles)
 local WorldLayout = require(script.Parent.WorldLayout)
 
@@ -24,8 +23,23 @@ export type Data = {
 	equipped: string, -- a ride key, or "" on foot
 	goals: { day: string, list: { { type: number, progress: number, done: boolean } } },
 	name: string, -- the rider name from the intro, unfiltered; "" uses their Roblox display name
-	look: Looks.Look,
 }
+
+PlayerData.NAME_MAX = 12 -- characters, as in the prototype
+
+-- The name trimmed, or nil if it isn't allowed. It still goes through TextService before anyone
+-- sees it (NameService).
+function PlayerData.cleanName(name: any): string?
+	if type(name) ~= "string" or name:find("%c") then
+		return nil
+	end
+	local trimmed = name:match("^%s*(.-)%s*$") :: string
+	local length = utf8.len(trimmed)
+	if not length or length > PlayerData.NAME_MAX then
+		return nil
+	end
+	return trimmed
+end
 
 function PlayerData.template(): Data
 	return {
@@ -42,7 +56,6 @@ function PlayerData.template(): Data
 		equipped = "",
 		goals = { day = "", list = {} },
 		name = "",
-		look = Looks.default(),
 	}
 end
 
@@ -105,8 +118,8 @@ function PlayerData.sanitize(data: Data): Data
 		end
 	end
 	data.goals = goals
-	data.name = Looks.name(data.name) or ""
-	data.look = Looks.clean(data.look) or Looks.default()
+	data.name = PlayerData.cleanName(data.name) or ""
+	data.look = nil -- the rider outfit, dropped 2026-11-08: players keep their own avatar
 	data.version = PlayerData.VERSION
 	return data
 end
