@@ -93,8 +93,9 @@ priority: gameplay first, polish after.
 3. ~~**The Intro**~~ Built 2026-11-08 (`NameService`, `client/Intro`). Players keep their own
    Roblox avatar; the rider outfit was dropped (Gregory's call).
 4. ~~**Paint and decor**~~ Built 2026-11-08: the prototype's 10 paints for house and ride, and its 6 garden things (flower bed, flag, gnome, fountain, pet dog, string lights). Needs a real purchase in a playtest.
-5. **Economy check** (GDD §16): time the first 30–60 minutes, and decide stacking caps and the
-   failure payout with Gregory.
+5. **Economy check** (GDD §16): simulated 2026-11-08 ([Economy-Check.md](Economy-Check.md)): first
+   ride at about minute 6, first home upgrade at about 10. Gregory sets the targets, the bonus cap
+   and the failure payout; the bulk playtest checks the real minutes.
 6. **Night content:** the White Lady, then shady jobs and police. The casual target means
    reviewing the 25% arrest cost first (GDD Appendix A).
 7. **Living town:** citizens and road traffic.
