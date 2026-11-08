@@ -26,7 +26,7 @@ for is still open (Next up, item 1). The phase order and exit tests are in
 | Homes | Home ladder and individual persistent property | Testing | 5 tiers, saved per player, built on a lot each session. **Missing:** house and ride paint, garden decor (GDD §6.3) |
 | Saving | Reliable player data persistence | In Progress | ProfileStore with a session lock, every field checked on load, throttled saves. **Not tested** against a live DataStore |
 | Multiplayer | Shared town and basic interaction | Testing | Shared world, dogs, events and lots. **Not tested** with 2 players |
-| UI | Intro, HUD, order board, shops, notifications | In Progress | HUD (the prototype's layout), board, goals, shops, minimap and full map, toasts. **Missing: the Intro** (name, skin and clothes; GDD §13.3 `Intro` remote) |
+| UI | Intro, HUD, order board, shops, notifications | Testing | HUD (the prototype's layout), board, goals, shops, minimap and full map, toasts. The Intro on every join (2026-11-08): a rider name (TextService-filtered, shown over the head) and your own avatar or the rider outfit (skin, shirt, pants and cap colours), saved and checked by the server. Needs a phone check |
 | World conditions | Day/night and a stable subset of conditions | Testing | 20-minute day, night pay, lamps, rain (pay, visibility, grip), brownout, fiesta, Undas |
 | Goals | Basic daily objectives | Testing | 3 a day, the same for everyone, paid once each |
 
@@ -88,8 +88,8 @@ priority: gameplay first, polish after.
    - Toolbox houses have no `Door` part and no `Window` tags, so they skip the door animation and
      the lit windows at night. Every stall shares one canopy colour.
    - Save the place and back it up to the vault.
-3. **The Intro** (closes the MVP UI): name, skin and clothes, the `Intro` remote, the name
-   filtered by TextService.
+3. ~~**The Intro**~~ Built 2026-11-08 (`LookService`, `client/Intro`). Players keep their Roblox
+   avatar unless they pick the rider outfit (Gregory's call).
 4. **Paint and decor** (GDD §6.3): house paint, ride paint, a flower bed, a Philippine flag.
 5. **Economy check** (GDD §16): time the first 30–60 minutes, and decide stacking caps and the
    failure payout with Gregory.

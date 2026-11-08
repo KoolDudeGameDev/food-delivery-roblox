@@ -142,6 +142,8 @@ local function push(player: Player)
 		owned = data.owned,
 		parts = data.parts,
 		equipped = data.equipped,
+		name = data.name,
+		look = data.look,
 		offers = offers,
 		offersDeadline = state.offersDeadline,
 		orders = orders,
