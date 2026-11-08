@@ -2,6 +2,7 @@
 -- (GDD §13.4). A new saved field needs a default here and a check in sanitize.
 local Goals = require(script.Parent.Goals)
 local Homes = require(script.Parent.Data.Homes)
+local Looks = require(script.Parent.Data.Looks)
 local Vehicles = require(script.Parent.Data.Vehicles)
 local WorldLayout = require(script.Parent.WorldLayout)
 
@@ -22,6 +23,8 @@ export type Data = {
 	parts: { [string]: { [string]: number } }, -- part levels, by ride then part
 	equipped: string, -- a ride key, or "" on foot
 	goals: { day: string, list: { { type: number, progress: number, done: boolean } } },
+	name: string, -- the rider name from the intro, unfiltered; "" uses their Roblox display name
+	look: Looks.Look,
 }
 
 function PlayerData.template(): Data
@@ -38,6 +41,8 @@ function PlayerData.template(): Data
 		parts = {},
 		equipped = "",
 		goals = { day = "", list = {} },
+		name = "",
+		look = Looks.default(),
 	}
 end
 
@@ -100,6 +105,8 @@ function PlayerData.sanitize(data: Data): Data
 		end
 	end
 	data.goals = goals
+	data.name = Looks.name(data.name) or ""
+	data.look = Looks.clean(data.look) or Looks.default()
 	data.version = PlayerData.VERSION
 	return data
 end
