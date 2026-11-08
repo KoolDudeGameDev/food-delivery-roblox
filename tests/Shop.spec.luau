@@ -94,4 +94,42 @@ return {
 		end
 		assert(d.cash == 1000)
 	end,
+	paintTheHouseOneColourAtATime = function()
+		local Shop, PlayerData = load()
+		local d = rich(PlayerData, 1000)
+		local ok, _, kind = Shop.buy(d, "paint:house:3")
+		assert(ok and kind == "home", "house paint rebuilds the home")
+		assert(d.cash == 750 and d.paint.house == 3, `cash {d.cash}, paint {d.paint.house}`)
+		assert(not Shop.buy(d, "paint:house:3"), "the colour it already is")
+		for _, item in { "paint:house:0", "paint:house:11", "paint:house:x", "paint:house" } do
+			assert(not Shop.buy(d, item), item)
+		end
+		assert(d.cash == 750)
+		local poor = rich(PlayerData, 249)
+		assert(not Shop.buy(poor, "paint:house:1") and poor.cash == 249 and poor.paint.house == 0)
+	end,
+	paintOnlyARideYouOwn = function()
+		local Shop, PlayerData = load()
+		local d = rich(PlayerData, 1000)
+		assert(not Shop.buy(d, "paint:rollerblades:2"), "not owned yet")
+		Shop.buy(d, "ride:rollerblades")
+		local cash = d.cash
+		local ok, _, kind = Shop.buy(d, "paint:rollerblades:2")
+		assert(ok and kind == "paint", "ride paint rebuilds the ride")
+		assert(d.cash == cash - 120 and d.paint.rides.rollerblades == 2)
+		assert(not Shop.buy(d, "paint:rollerblades:2"), "the colour it already is")
+		assert(not Shop.buy(d, "paint:spaceship:2"))
+	end,
+	eachDecorationOncePerYard = function()
+		local Shop, PlayerData = load()
+		local d = rich(PlayerData, 1000)
+		local ok, _, kind = Shop.buy(d, "decor:flag")
+		assert(ok and kind == "home")
+		assert(d.cash == 850 and d.decor.flag == true)
+		assert(not Shop.buy(d, "decor:flag"), "already in the yard")
+		assert(not Shop.buy(d, "decor:castle"))
+		assert(d.cash == 850)
+		local poor = rich(PlayerData, 399)
+		assert(not Shop.buy(poor, "decor:fountain") and poor.decor.fountain == nil)
+	end,
 }

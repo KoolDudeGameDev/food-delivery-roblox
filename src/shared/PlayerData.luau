@@ -1,6 +1,7 @@
 -- What a player's save holds, its defaults, and the check every save gets when it loads
 -- (GDD §13.4). A new saved field needs a default here and a check in sanitize.
 local Goals = require(script.Parent.Goals)
+local Cosmetics = require(script.Parent.Data.Cosmetics)
 local Homes = require(script.Parent.Data.Homes)
 local Vehicles = require(script.Parent.Data.Vehicles)
 local WorldLayout = require(script.Parent.WorldLayout)
@@ -23,6 +24,8 @@ export type Data = {
 	equipped: string, -- a ride key, or "" on foot
 	goals: { day: string, list: { { type: number, progress: number, done: boolean } } },
 	name: string, -- the rider name from the intro, unfiltered; "" uses their Roblox display name
+	paint: { house: number, rides: { [string]: number } }, -- Cosmetics.PAINTS index; 0 = as built
+	decor: { [string]: boolean }, -- Cosmetics.DECOR keys in the yard
 }
 
 PlayerData.NAME_MAX = 12 -- characters, as in the prototype
@@ -56,6 +59,8 @@ function PlayerData.template(): Data
 		equipped = "",
 		goals = { day = "", list = {} },
 		name = "",
+		paint = { house = 0, rides = {} },
+		decor = {},
 	}
 end
 
@@ -120,6 +125,26 @@ function PlayerData.sanitize(data: Data): Data
 	data.goals = goals
 	data.name = PlayerData.cleanName(data.name) or ""
 	data.look = nil -- the rider outfit, dropped 2026-11-08: players keep their own avatar
+	-- Paint: a known colour or none; ride paint only on rides they own
+	local function colour(value: any): number?
+		local n = count(value)
+		return if n == value and n >= 1 and n <= #Cosmetics.PAINTS then n else nil
+	end
+	local savedPaint = if type(data.paint) == "table" then data.paint else {}
+	local paint = { house = colour(savedPaint.house) or 0, rides = {} }
+	if type(savedPaint.rides) == "table" then
+		for key in owned do
+			paint.rides[key] = colour(savedPaint.rides[key])
+		end
+	end
+	data.paint = paint
+	local decor = {}
+	for _, d in Cosmetics.DECOR do
+		if type(data.decor) == "table" and data.decor[d.key] == true then
+			decor[d.key] = true
+		end
+	end
+	data.decor = decor
 	data.version = PlayerData.VERSION
 	return data
 end

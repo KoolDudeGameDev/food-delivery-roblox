@@ -23,7 +23,7 @@ for is still open (Next up, item 1). The phase order and exit tests are in
 | Chasers | Dog sizes and a limited set of breeds | Testing | 5 sizes, 13 breeds (with the cat and the goose), alert-bark-chase, bites, knockback, stun |
 | Economy | Server-authoritative pesos and purchases | Testing | Only the server changes cash. Buys are checked for range, price and order |
 | Vehicles | Initial ride ladder and core parts | Testing | 6 rides, with speed, acceleration and carry parts shown on the model, gate parking, sprint, headlights |
-| Homes | Home ladder and individual persistent property | Testing | 5 tiers, saved per player, built on a lot each session. **Missing:** house and ride paint, garden decor (GDD §6.3) |
+| Homes | Home ladder and individual persistent property | Testing | 5 tiers, saved per player, built on a lot each session. House paint (₱250, at home), ride paint (₱120, at the mechanic) and 6 garden decorations (prototype prices), 2026-11-08 |
 | Saving | Reliable player data persistence | In Progress | ProfileStore with a session lock, every field checked on load, throttled saves. **Not tested** against a live DataStore |
 | Multiplayer | Shared town and basic interaction | Testing | Shared world, dogs, events and lots. **Not tested** with 2 players |
 | UI | Intro, HUD, order board, shops, notifications | Testing | HUD (the prototype's layout), board, goals, shops, minimap and full map, toasts. The Intro on every join (2026-11-08): a rider name (TextService-filtered, shown over the head), saved and checked by the server. Players keep their own Roblox avatar (Gregory, 2026-11-08: no rider outfit). Needs a phone check |
@@ -92,7 +92,7 @@ priority: gameplay first, polish after.
    - Save the place and back it up to the vault.
 3. ~~**The Intro**~~ Built 2026-11-08 (`NameService`, `client/Intro`). Players keep their own
    Roblox avatar; the rider outfit was dropped (Gregory's call).
-4. **Paint and decor** (GDD §6.3): house paint, ride paint, a flower bed, a Philippine flag.
+4. ~~**Paint and decor**~~ Built 2026-11-08: the prototype's 10 paints for house and ride, and its 6 garden things (flower bed, flag, gnome, fountain, pet dog, string lights). Needs a real purchase in a playtest.
 5. **Economy check** (GDD §16): time the first 30–60 minutes, and decide stacking caps and the
    failure payout with Gregory.
 6. **Night content:** the White Lady, then shady jobs and police. The casual target means

@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Shop = require(ReplicatedStorage.Shared.Shop)
 local Vehicles = require(ReplicatedStorage.Shared.Data.Vehicles)
 local WorldLayout = require(ReplicatedStorage.Shared.WorldLayout)
@@ -234,7 +235,8 @@ function RideService.refresh(player: Player)
 		return
 	end
 	local v = Vehicles.byKey[data.equipped]
-	local model = build(v.key, data.parts[v.key] or {}, v.color)
+	local paint = Cosmetics.PAINTS[data.paint.rides[v.key] or 0]
+	local model = build(v.key, data.parts[v.key] or {}, if paint then paint.color else v.color)
 	model.Name = `{player.Name}_{v.key}`
 	model:SetAttribute("Ride", v.key) -- the client picks a riding pose from this
 	setLoose(model)
