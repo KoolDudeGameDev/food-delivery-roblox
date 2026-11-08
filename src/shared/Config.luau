@@ -75,6 +75,24 @@ Config.GHOST_KNOCK = 12 -- m/s away from her, and GHOST_LIFT up
 Config.GHOST_LIFT = 5
 Config.GHOST_STUN = 0.5 -- s
 
+-- Night jobs and police (GDD Appendix A, the prototype's values; the GDD asks for these to be
+-- reviewed for a casual audience, the arrest cost above all: Gregory's call)
+Config.DEALER_MIN = 90 -- m from you that a dealer stands
+Config.BUYER_MIN = 120 -- m from the dealer that the buyer waits
+Config.DEALER_REACH = 3.6 -- m from the dealer to take the package
+Config.DEALER_DELAY = 8 -- s after a job before the next dealer appears
+Config.CONTRABAND_PAY = 130 -- pesos, plus CONTRABAND_FAR_PAY per metre from dealer to buyer
+Config.CONTRABAND_FAR_PAY = 0.6
+Config.ARREST_COST = 0.25 -- share of your cash an arrest takes, with every order you carry
+Config.POLICE_PATROL = 8 -- m/s round their loop
+Config.POLICE_CHASE = 19 -- m/s after you
+Config.POLICE_SEE = 32 -- m: how close you must be for them to spot you
+Config.POLICE_LOSE = 55 -- m: further than this ...
+Config.POLICE_GIVE_UP = 3 -- ... for this long (s), or in a yard, and they give up
+Config.POLICE_CATCH = 2.6 -- m: an arrest
+Config.POLICE_GRACE = 6 -- s after an arrest before they'll chase you again
+Config.POLICE_LANE = 2.2 -- m inside the ring road's centreline
+
 -- Ride hits (Gregory, 2026-11-08): a rider this fast sends whoever they run into flying. All to tune.
 Config.RAM_SPEED = 6 -- m/s the rider must be going
 Config.RAM_REACH = 2.2 -- m from the rider to whoever they hit

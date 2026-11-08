@@ -33,7 +33,6 @@ for is still open (Next up, item 1). The phase order and exit tests are in
 Added by Gregory, 2026-11-08: **ride hits**. A fast rider sends whoever they hit flying, sometimes minus a limb, and they pull together where they land. Orders are never touched. Testing: the fling, the limbs and the mend are checked with one player; it needs a 2-player test.
 
 Beyond the MVP but in the existing design, not started:
-- night jobs (shady packages and police);
 - citizens and road traffic.
 
 ## MVP acceptance criteria (GDD §14.3)
@@ -95,7 +94,7 @@ priority: gameplay first, polish after.
 5. **Economy check** (GDD §16): simulated 2026-11-08 ([Economy-Check.md](Economy-Check.md)): first
    ride at about minute 6, first home upgrade at about 10. Gregory sets the targets, the bonus cap
    and the failure payout; the bulk playtest checks the real minutes.
-6. **Night content:** ~~the White Lady~~ built 2026-11-08 (prototype `ghost.js`: cemetery after dark, 3.4 m/s, 40% order damage, far-corner return; `workspace.SetClock` jumps the day for playtests). Next: shady jobs and police. The casual target means
+6. **Night content:** ~~the White Lady~~ built 2026-11-08 (prototype `ghost.js`: cemetery after dark, 3.4 m/s, 40% order damage, far-corner return; `workspace.SetClock` jumps the day for playtests). Shady jobs and police built 2026-11-08 (prototype `contraband.js`, `police.js`; the shady daily goal is back). **Gregory to decide:** the arrest cost (25% of cash and every order, which the GDD asks to review for a casual audience) and whether the buyer's clock (0.9x straight-line running time, so sprint or ride) suits a 500 m map. The casual target means
    reviewing the 25% arrest cost first (GDD Appendix A).
 7. **Living town:** citizens and road traffic.
 8. **Phase 8:**
@@ -133,7 +132,6 @@ The game uses the prototype's behaviour for each of these, marked as a value to 
   flickers for 1.5 s first.
 - **Rain grip.** Rides take accel × grip to reach speed, turn and stop, with rain grip at 0.55.
   The server still caps speed.
-- **The shady-job daily goal** waits for night jobs.
 
 Settled (Blueprint §17):
 1. The warehouse hub is offset, in the north-east block beside the centre road.

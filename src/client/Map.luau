@@ -7,6 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local WorldLayout = require(ReplicatedStorage.Shared.WorldLayout)
+local NightJobs = require(script.Parent.NightJobs)
 local Ui = require(script.Parent.Ui)
 
 local Map = {}
@@ -178,7 +179,12 @@ local function fixedPins(): { Pin }
 		end
 	end
 	for _, o in orders do
-		table.insert(list, { key = o.id, x = o.target.X / S, z = o.target.Z / S, icon = if o.food then "🍲" else "📦", color = hex("e8a400") })
+		local icon = if o.contraband then "💰" elseif o.food then "🍲" else "📦"
+		table.insert(list, { key = o.id, x = o.target.X / S, z = o.target.Z / S, icon = icon, color = if o.contraband then NightJobs.RING else hex("e8a400") })
+	end
+	local dealer = NightJobs.dealer()
+	if dealer then
+		table.insert(list, { key = "nightDealer", x = dealer.X / S, z = dealer.Z / S, icon = "🕶", color = NightJobs.RING })
 	end
 	return list
 end
