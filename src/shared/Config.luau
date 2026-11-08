@@ -93,6 +93,17 @@ Config.POLICE_CATCH = 2.6 -- m: an arrest
 Config.POLICE_GRACE = 6 -- s after an arrest before they'll chase you again
 Config.POLICE_LANE = 2.2 -- m inside the ring road's centreline
 
+-- The living town (prototype `traffic.js`, `citizens.js`; to tune)
+Config.TRAFFIC_LANE = 2.2 -- m outside the ring road's centreline (the police drive inside it)
+Config.TRAFFIC_DAMAGE = 8 -- % of each order when a jeepney or tricycle bumps you
+Config.TRAFFIC_COOLDOWN = 2.5 -- s between bumps
+Config.TRAFFIC_KNOCK = 14 -- m/s away, and 5 m/s up
+Config.TRAFFIC_STUN = 0.35 -- s
+Config.HIT_SPEED = 7 -- m/s you must be going to send a walker flying
+Config.HIT_FINE = 15 -- pesos, never more than you have
+Config.HIT_DAMAGE = 10 -- % of each order
+Config.WALKER_FALL = 3.4 -- s a walker is down after a hit
+
 -- Ride hits (Gregory, 2026-11-08): a rider this fast sends whoever they run into flying. All to tune.
 Config.RAM_SPEED = 6 -- m/s the rider must be going
 Config.RAM_REACH = 2.2 -- m from the rider to whoever they hit

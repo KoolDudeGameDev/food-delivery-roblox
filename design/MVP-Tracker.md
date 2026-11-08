@@ -33,7 +33,6 @@ for is still open (Next up, item 1). The phase order and exit tests are in
 Added by Gregory, 2026-11-08: **ride hits**. A fast rider sends whoever they hit flying, sometimes minus a limb, and they pull together where they land. Orders are never touched. Testing: the fling, the limbs and the mend are checked with one player; it needs a 2-player test.
 
 Beyond the MVP but in the existing design, not started:
-- citizens and road traffic.
 
 ## MVP acceptance criteria (GDD §14.3)
 
@@ -96,7 +95,7 @@ priority: gameplay first, polish after.
    and the failure payout; the bulk playtest checks the real minutes.
 6. **Night content:** ~~the White Lady~~ built 2026-11-08 (prototype `ghost.js`: cemetery after dark, 3.4 m/s, 40% order damage, far-corner return; `workspace.SetClock` jumps the day for playtests). Shady jobs and police built 2026-11-08 (prototype `contraband.js`, `police.js`; the shady daily goal is back). **Gregory to decide:** the arrest cost (25% of cash and every order, which the GDD asks to review for a casual audience) and whether the buyer's clock (0.9x straight-line running time, so sprint or ride) suits a 500 m map. The casual target means
    reviewing the 25% arrest cost first (GDD Appendix A).
-7. **Living town:** citizens and road traffic.
+7. ~~**Living town:**~~ built 2026-11-08 (prototype `traffic.js`, `citizens.js`): 6 jeepneys and tricycles on the ring roads, 12 walkers on the sidewalks (a third stay out at night), bumps and the ₱15 "Hoy! Watch it!" fine. Not yet: the pickleball pair and the dogs on leashes.
 8. **Phase 8:**
    - a real-phone pass;
    - a performance profile with 7 players;

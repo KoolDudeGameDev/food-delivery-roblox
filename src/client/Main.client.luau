@@ -17,6 +17,7 @@ local Lights = require(script.Parent.Lights)
 local Map = require(script.Parent.Map)
 local NightJobs = require(script.Parent.NightJobs)
 local Police = require(script.Parent.Police)
+local Town = require(script.Parent.Town)
 local Ragdoll = require(script.Parent.Ragdoll)
 local Riding = require(script.Parent.Riding)
 local ShopPanel = require(script.Parent.ShopPanel)
@@ -44,6 +45,7 @@ Chasers.start()
 Ghost.start()
 NightJobs.start()
 Police.start()
+Town.start()
 Gates.start()
 Conveyor.start()
 Grip.start()
@@ -71,6 +73,9 @@ Remotes.Notify.OnClientEvent:Connect(function(message)
 	end
 	if message.kind == "paid" or message.kind == "deal" then
 		Audio.paid()
+	end
+	if message.kind == "walkerHit" and type(message.index) == "number" and typeof(message.fling) == "Vector3" then
+		Town.walkerHit(message.index, message.fling, message.down or 3)
 	end
 	if message.kind == "dealer" then
 		NightJobs.onDealer(if typeof(message.at) == "Vector3" then message.at else nil)
@@ -134,6 +139,7 @@ RunService.RenderStepped:Connect(function(dt)
 	Chasers.step(dt, os.clock())
 	Ghost.step(dt, os.clock())
 	Police.step(dt, os.clock())
+	Town.step(dt)
 	Riding.step()
 	Conveyor.step(dt)
 	Lights.step()
