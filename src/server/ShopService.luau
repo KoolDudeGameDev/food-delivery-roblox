@@ -49,8 +49,11 @@ local function inRange(player: Player, item: string): boolean
 		return atShop(player, "dealer")
 	elseif kind == "part" then
 		return atShop(player, "mechanic")
-	elseif kind == "home" then
+	elseif kind == "home" or kind == "decor" then
 		return atHome(player)
+	elseif kind == "paint" then
+		-- The house at your lot; a ride at the mechanic (prototype `shop.js`)
+		return if string.match(item, "^paint:house:") then atHome(player) else atShop(player, "mechanic")
 	elseif kind == "use" then
 		return atHome(player) or atShop(player, "dealer")
 	end
@@ -79,7 +82,7 @@ local function buy(player: Player, item: unknown)
 		if kind == "home" then
 			local lot = LotService.lotOf(player)
 			if lot then
-				LotService.showHome(lot, data.homeTier)
+				LotService.showHome(lot, data)
 			end
 		else
 			RideService.refresh(player)

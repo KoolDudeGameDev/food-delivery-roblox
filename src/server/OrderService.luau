@@ -143,6 +143,8 @@ local function push(player: Player)
 		parts = data.parts,
 		equipped = data.equipped,
 		name = data.name,
+		paint = data.paint,
+		decor = data.decor,
 		offers = offers,
 		offersDeadline = state.offersDeadline,
 		orders = orders,

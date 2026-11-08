@@ -1,9 +1,11 @@
 -- One panel behind three places, as in the prototype: the dealer (rides), the mechanic (parts
--- for the ride you're on) and your home (house upgrades, and which ride to use). Every button
+-- and paint for the ride you're on) and your home (house upgrades, paint, garden, and which
+-- ride to use). Every button
 -- asks the server through Buy; what you see comes from the server's State.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Cosmetics = require(ReplicatedStorage.Shared.Data.Cosmetics)
 local Homes = require(ReplicatedStorage.Shared.Data.Homes)
 local Shop = require(ReplicatedStorage.Shared.Shop)
 local Vehicles = require(ReplicatedStorage.Shared.Data.Vehicles)
@@ -31,6 +33,19 @@ end
 
 local function heading(text: string, order: number)
 	Ui.label(text, 15, Ui.MUTED, { Parent = list, LayoutOrder = order })
+end
+
+-- Asks the server to buy or use an item; what changes comes back in the next State
+local function ask(item: string)
+	if busy then
+		return
+	end
+	busy = true
+	local result = ReplicatedStorage.Remotes.Buy:InvokeServer(item)
+	busy = false
+	if result and not result.ok then
+		note.Text = result.message
+	end
 end
 
 local function row(order: number, name: string, detail: string, button: string, enabled: boolean, item: string?)
@@ -62,16 +77,43 @@ local function row(order: number, name: string, detail: string, button: string, 
 		AutoButtonColor = enabled,
 	}, { Ui.corner(10) })
 	b.Activated:Connect(function()
-		if busy or not enabled or not item then
-			return
-		end
-		busy = true
-		local result = ReplicatedStorage.Remotes.Buy:InvokeServer(item)
-		busy = false
-		if result and not result.ok then
-			note.Text = result.message
+		if enabled and item then
+			ask(item)
 		end
 	end)
+end
+
+-- Ten colour buttons; the colour in use is marked and can't be bought again (prototype `shop.js`)
+local function swatches(order: number, current_: number?, price: number, cash: number, itemPrefix: string)
+	local strip = Ui.make("Frame", {
+		Parent = list,
+		LayoutOrder = order,
+		Size = UDim2.new(1, -6, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+	}, { Ui.make("UIGridLayout", { CellSize = UDim2.fromOffset(40, 40), CellPadding = UDim2.fromOffset(6, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	for i, p in Cosmetics.PAINTS do
+		local picked = current_ == i
+		local can = not picked and cash >= price
+		local b = Ui.make("TextButton", {
+			Parent = strip,
+			LayoutOrder = i,
+			Text = if picked then "✓" else "",
+			TextSize = 18,
+			Font = Enum.Font.GothamBold,
+			TextColor3 = if p.name == "White" or p.name == "Yellow" then Ui.INK else Color3.new(1, 1, 1),
+			BackgroundColor3 = p.color,
+			AutoButtonColor = can,
+		}, {
+			Ui.corner(20),
+			Ui.make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Thickness = if picked then 3 else 1, Color = if picked then Ui.INK else Color3.fromHex("c9c3b6") }),
+		})
+		b.Activated:Connect(function()
+			if can then
+				ask(`{itemPrefix}{i}`)
+			end
+		end)
+	end
 end
 
 local function statsLine(data, key: string?): string
@@ -114,12 +156,23 @@ local function render()
 				local adds = if p.speed then `+{p.speed} m/s` elseif p.accel then `+{p.accel} pickup` else `+{p.carry} carry`
 				row(nextOrder(), p.name, `Level {lv} of {#p.prices} · {adds} each`, if price then `₱{price}` else "Max", price ~= nil and data.cash >= price, `part:{v.key}:{p.key}`)
 			end
+			local price = Cosmetics.PAINT_PRICES.ride
+			heading(`Paint your {v.name:lower()}, ₱{price}`, nextOrder())
+			swatches(nextOrder(), data.paint.rides[v.key], price, data.cash, `paint:{v.key}:`)
 		end
 	else
 		local home, nextHome = Homes[data.homeTier], Homes[data.homeTier + 1]
 		heading("House", nextOrder())
 		local detail = `+{math.round(home.bonus * 100)}% pay` .. (if nextHome then ` · next: {nextHome.name}` else "")
 		row(nextOrder(), home.name, detail, if nextHome then `₱{nextHome.price}` else "Max", nextHome ~= nil and data.cash >= nextHome.price, "home")
+		local paintPrice = Cosmetics.PAINT_PRICES.house
+		heading(`Paint your house, ₱{paintPrice}`, nextOrder())
+		swatches(nextOrder(), data.paint.house, paintPrice, data.cash, "paint:house:")
+		heading("Garden", nextOrder())
+		for _, d in Cosmetics.DECOR do
+			local owned = data.decor[d.key] == true
+			row(nextOrder(), d.name, if owned then "In your yard" else "For your yard", if owned then "Owned" else `₱{d.price}`, not owned and data.cash >= d.price, `decor:{d.key}`)
+		end
 		heading("Your rides", nextOrder())
 		row(nextOrder(), "On foot", statsLine(data, nil), if data.equipped == "" then "Using" else "Use", data.equipped ~= "", "use:foot")
 		for _, v in Vehicles.list do

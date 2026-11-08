@@ -1,7 +1,9 @@
--- Buying rides, parts and homes, and choosing a ride: pure rules on a player's data, so the
--- server and the tests share them. The server checks where the player is first (ShopService).
--- Items are strings: "ride:<key>", "part:<ride>:<part>", "home", "use:<ride>" or "use:foot".
+-- Buying rides, parts, homes, paint and decor, and choosing a ride: pure rules on a player's
+-- data, so the server and the tests share them. The server checks where the player is first
+-- (ShopService). Items are strings: "ride:<key>", "part:<ride>:<part>", "home", "use:<ride>",
+-- "use:foot", "paint:house:<colour>", "paint:<ride>:<colour>" or "decor:<key>".
 local Config = require(script.Parent.Config)
+local Cosmetics = require(script.Parent.Data.Cosmetics)
 local Homes = require(script.Parent.Data.Homes)
 local Vehicles = require(script.Parent.Data.Vehicles)
 
@@ -45,7 +47,7 @@ function Shop.stats(data, key: string?)
 end
 
 -- Tries to buy or use an item. Changes data only on success. Returns ok, a message, and the
--- kind of change ("ride", "part", "home" or "use") so the server knows what to rebuild.
+-- kind of change ("ride", "part", "home", "paint" or "use") so the server knows what to rebuild.
 function Shop.buy(data, item: string): (boolean, string, string?)
 	local kind, a, b = string.match(item, "^(%a+):?([%w]*):?([%w]*)$")
 	if kind == "ride" and a ~= "" and b == "" then
@@ -89,6 +91,41 @@ function Shop.buy(data, item: string): (boolean, string, string?)
 		data.cash -= next.price
 		data.homeTier += 1
 		return true, `{next.name} built!`, "home"
+	elseif kind == "paint" and a ~= "" and b:match("^%d+$") then
+		local i = tonumber(b) :: number
+		if not Cosmetics.PAINTS[i] then
+			return false, "You can't buy that"
+		end
+		local house = a == "house"
+		if not house and not (Vehicles.byKey[a] and data.owned[a]) then
+			return false, "You can't buy that"
+		end
+		local now = if house then data.paint.house else data.paint.rides[a]
+		local price = if house then Cosmetics.PAINT_PRICES.house else Cosmetics.PAINT_PRICES.ride
+		if now == i then
+			return false, "It's already that colour"
+		elseif data.cash < price then
+			return false, `You need ₱{price}`
+		end
+		data.cash -= price
+		if house then
+			data.paint.house = i
+		else
+			data.paint.rides[a] = i
+		end
+		return true, "Fresh paint!", if house then "home" else "paint"
+	elseif kind == "decor" and a ~= "" and b == "" then
+		local d = Cosmetics.decorByKey[a]
+		if not d then
+			return false, "You can't buy that"
+		elseif data.decor[a] then
+			return false, "Already in your yard"
+		elseif data.cash < d.price then
+			return false, `You need ₱{d.price}`
+		end
+		data.cash -= d.price
+		data.decor[a] = true
+		return true, `{d.name} added!`, "home"
 	elseif kind == "use" and a ~= "" and b == "" then
 		if a == "foot" then
 			data.equipped = ""

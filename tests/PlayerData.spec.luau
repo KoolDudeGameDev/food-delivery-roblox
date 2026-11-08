@@ -106,4 +106,22 @@ return {
 		PlayerData.sanitize(d)
 		assert(d.cash == 1234 and d.delivered == 20 and d.homeTier == 3 and d.ratingSum == 80 and d.ratingCount == 20)
 	end,
+	paintAndDecorAreSavedAndChecked = function()
+		local PlayerData = load()
+		local t = PlayerData.template()
+		assert(t.paint.house == 0 and next(t.paint.rides) == nil and next(t.decor) == nil)
+		local d = PlayerData.template()
+		d.owned.rollerblades = true
+		d.paint = { house = 99, rides = { rollerblades = 4, skateboard = 2, bicycle = 1.5 } }
+		d.decor = { flag = true, castle = true, gnome = "yes" }
+		PlayerData.sanitize(d)
+		assert(d.paint.house == 0, "unknown colour: unpainted")
+		assert(d.paint.rides.rollerblades == 4, "an owned ride keeps its paint")
+		assert(d.paint.rides.skateboard == nil, "not owned")
+		assert(d.decor.flag == true and d.decor.castle == nil and d.decor.gnome == nil)
+		local junk = PlayerData.template() :: any
+		junk.paint, junk.decor = "red", 5
+		PlayerData.sanitize(junk)
+		assert(junk.paint.house == 0 and next(junk.decor) == nil)
+	end,
 }
