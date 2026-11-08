@@ -22,9 +22,22 @@ type Rig = {
 local rigs: { [Model]: Rig } = {}
 local folder: Instance?
 
+-- Paths and doorsteps sit a little above the grass, so each dog stands on whatever flat ground
+-- is under it. The ray starts below the fences, so it only finds the ground layers.
+local ground = RaycastParams.new()
+ground.FilterType = Enum.RaycastFilterType.Include
+ground.RespectCanCollide = true
+
+local function groundAt(x: number, z: number): number
+	local hit = workspace:Raycast(Vector3.new(x, 2, z), Vector3.new(0, -4, 0), ground)
+	return if hit then hit.Position.Y else 0
+end
+
 function Chasers.start()
 	task.spawn(function()
-		folder = workspace:WaitForChild("Gameplay"):WaitForChild("Chasers")
+		local gameplay = workspace:WaitForChild("Gameplay")
+		ground.FilterDescendantsInstances = { workspace:WaitForChild("World"), gameplay:WaitForChild("CustomerHouses") }
+		folder = gameplay:WaitForChild("Chasers")
 	end)
 end
 
@@ -78,7 +91,7 @@ function Chasers.step(dt: number, clock: number)
 		local biteAt = model:GetAttribute("BiteAt")
 		local since = if biteAt then workspace:GetServerTimeNow() - biteAt else math.huge
 		local lunge = if since < 0.25 then math.sin(since / 0.25 * math.pi) * 0.6 * S else 0
-		local target = CFrame.new(x * S, 0, z * S) * CFrame.Angles(0, yaw, 0) * CFrame.new(0, 0, lunge)
+		local target = CFrame.new(x * S, groundAt(x * S, z * S), z * S) * CFrame.Angles(0, yaw, 0) * CFrame.new(0, 0, lunge)
 		local before = rig.shown.Position
 		rig.shown = rig.shown:Lerp(target, blend)
 		local moved = (rig.shown.Position - before).Magnitude / S

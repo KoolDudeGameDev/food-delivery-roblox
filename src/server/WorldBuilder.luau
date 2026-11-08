@@ -281,7 +281,11 @@ local function buildHouse(h)
 	-- The house, near the back of the yard
 	local hx, hz = at(0, geo.bodyV)
 	local body = art(`House_{h.size}`, CFrame.new(WorldLayout.studs(hx, hz)) * CFrame.Angles(0, yaw, 0), model)
-	if not body then
+	if body then
+		-- Scaled about its base to fill the footprint's width; the box is in the house's own axes
+		local _, box = body:GetBoundingBox()
+		body:ScaleTo(body:GetScale() * size.w * S / box.X)
+	else
 		local floors = size.h * size.floors
 		local walls = block(model, "Body", size.w, floors, size.d, h.color, hx, floors / 2, hz)
 		walls.CFrame = CFrame.new(walls.Position) * CFrame.Angles(0, yaw, 0)

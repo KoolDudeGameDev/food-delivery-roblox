@@ -61,9 +61,13 @@ local function buildModel(parent: Instance, breedKey: string, at: { x: number, z
 			end
 			part("Tail", 0.12, 0.45, 0.12, coat, 0, y + 0.35, -0.75)
 		end
-		model.PrimaryPart = model:FindFirstChild("Body") :: BasePart
 	end
+	-- The pivot is at the feet, where the client stands the dog. No PrimaryPart: with one, the
+	-- pivot follows the body's centre and the dog sinks into the ground by its own height.
 	model.WorldPivot = CFrame.new(WorldLayout.studs(at.x, at.z))
+	-- Stream in and out whole: the client rigs a dog from the parts it has when it first sees it,
+	-- so a dog whose parts were still streaming in would never move
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	-- A red "!" over its head while it chases; the client shows it
 	local alert = Instance.new("BillboardGui")
 	alert.Name = "Alert"

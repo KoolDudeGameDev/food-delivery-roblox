@@ -1,8 +1,8 @@
--- Customer gates that open for the delivery (Blueprint §7.3, §13). A gate opens while someone
--- carrying an order for that house is close, or while anyone is inside the yard (so nobody is
--- ever shut in), and closes a moment after. Walk up to the wrong gate with orders in hand and it
--- stays shut and tells you so. The server owns open and shut (the leaves stop colliding); each
--- client swings the leaves (client/Gates.luau).
+-- Customer gates (Blueprint §7.3, §13). A gate opens for anyone who walks right up to it or is
+-- inside the yard, and early, from further off, for someone carrying an order for that house;
+-- it closes a moment after. Walk up to the wrong gate with orders in hand and it tells you so.
+-- The server owns open and shut (the leaves stop colliding); each client swings the leaves
+-- (client/Gates.luau).
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,7 +17,7 @@ local GateService = {}
 local S = Config.STUDS
 local TICK = 0.2
 local OPEN_REACH = 10 -- m from the gate at which it opens for the right order
-local TELL_REACH = 4 -- m: walking right up to the wrong gate
+local WALK_UP = 4 -- m: walking right up to a gate opens it for anyone
 local HOLD = 2 -- s it stays open after the last reason to be open
 local TELL_GAP = 8 -- s between "wrong house" notes for one player at one gate
 
@@ -52,9 +52,10 @@ local function tick()
 			local d2 = (p.x - gate.x) ^ 2 + (p.z - gate.z) ^ 2
 			local inside = p.x > y.x0 and p.x < y.x1 and p.z > y.z0 and p.z < y.z1
 			local theirs = OrderService.carriesFor(p.player, gate.house.id)
-			if inside or (theirs and d2 < OPEN_REACH ^ 2) then
+			if inside or d2 < WALK_UP ^ 2 or (theirs and d2 < OPEN_REACH ^ 2) then
 				gate.openUntil = now + HOLD
-			elseif d2 < TELL_REACH ^ 2 and OrderService.carrying(p.player) > 0 then
+			end
+			if not theirs and d2 < WALK_UP ^ 2 and OrderService.carrying(p.player) > 0 then
 				local notes = told[p.player] or {}
 				told[p.player] = notes
 				if now - (notes[gate.house.id] or -math.huge) > TELL_GAP then

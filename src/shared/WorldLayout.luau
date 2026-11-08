@@ -108,8 +108,9 @@ WorldLayout.SHOPS = {
 
 -- How big a customer's house and yard are; yardU/yardV are half-widths across and deep.
 WorldLayout.HOUSE_SIZES = {
-	small = { w = 10, d = 7.5, h = 5, floors = 1, yardU = 10.5, yardV = 11 },
-	medium = { w = 14, d = 9, h = 6, floors = 1, yardU = 13, yardV = 13 },
+	-- The Toolbox houses are scaled to fill w (WorldBuilder), and d is their depth at that scale
+	small = { w = 10, d = 11.3, h = 5, floors = 1, yardU = 10.5, yardV = 11 },
+	medium = { w = 14, d = 14.8, h = 6, floors = 1, yardU = 13, yardV = 13 },
 	large = { w = 18, d = 10, h = 5.5, floors = 2, yardU = 16, yardV = 15 },
 }
 
