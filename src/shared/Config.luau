@@ -66,4 +66,14 @@ Config.DOG_ALERT = 0.6 -- s a dog stands and barks before it chases (Gregory's c
 Config.BITE_GAP = 1.2 -- s between one dog's bites
 Config.DOG_WAKE = 60 -- m: dogs with nobody this close stay asleep, to save the server work
 
+-- Ride hits (Gregory, 2026-11-08): a rider this fast sends whoever they run into flying. All to tune.
+Config.RAM_SPEED = 6 -- m/s the rider must be going
+Config.RAM_REACH = 2.2 -- m from the rider to whoever they hit
+Config.RAM_PUSH = 1.5 -- m/s of fling along the ride's way, per m/s of the rider's speed
+Config.RAM_LIFT = 8 -- m/s of fling upwards, plus RAM_LIFT_PER per m/s of the rider's speed
+Config.RAM_LIFT_PER = 0.6
+Config.RAM_DOWN = 2.5 -- s in pieces before you pull yourself together
+Config.RAM_IMMUNE = 4 -- s after a hit before you can be hit again
+Config.RAM_DETACH_CHANCE = 0.3 -- share of hits where an arm or a leg comes off
+
 return Config

@@ -14,6 +14,7 @@ local Hud = require(script.Parent.Hud)
 local Intro = require(script.Parent.Intro)
 local Lights = require(script.Parent.Lights)
 local Map = require(script.Parent.Map)
+local Ragdoll = require(script.Parent.Ragdoll)
 local Riding = require(script.Parent.Riding)
 local ShopPanel = require(script.Parent.ShopPanel)
 local Waypoint = require(script.Parent.Waypoint)
@@ -73,6 +74,10 @@ Remotes.Notify.OnClientEvent:Connect(function(message)
 		if root then
 			root.AssemblyLinearVelocity = message.knock
 		end
+	end
+	-- A ride hit you: fly, in pieces now and then, and get back up where you land
+	if message.kind == "rammed" and typeof(message.fling) == "Vector3" and type(message.down) == "number" then
+		Ragdoll.fling(message.fling, message.down)
 	end
 end)
 
