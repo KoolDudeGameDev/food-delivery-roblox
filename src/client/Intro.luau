@@ -1,13 +1,13 @@
--- The intro, every time you join (prototype `intro.js`): a rider name and a look, then Play. You
--- keep your own Roblox avatar unless you pick the rider outfit. Each change goes to the server
--- (LookService), which checks it, saves it and dresses you, so what you see is what others see.
--- While it's open the camera faces your rider from the front, beside the panel.
+-- The intro, every time you join (prototype `intro.js`): a rider name, then Play. Players keep
+-- their own Roblox avatar. The name goes to the server (NameService), which checks it, saves it
+-- and shows it, filtered, over your head. While it's open the camera faces your rider from the
+-- front, beside the panel, and the HUD waits.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Homes = require(ReplicatedStorage.Shared.Data.Homes)
-local Looks = require(ReplicatedStorage.Shared.Data.Looks)
+local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local Ui = require(script.Parent.Ui)
 
 local Intro = {}
@@ -15,21 +15,15 @@ local Intro = {}
 local player = Players.LocalPlayer
 local SWAY, FAR, SIDE = 0.45, 11, 4 -- radians either way, studs out front, studs aside for the panel
 
-local PLAY_H = 52 -- px, the Play button under the panel
-
-local panel: ScrollingFrame
-local playButton: TextButton
+local panel: Frame
 local note: TextLabel
 local nameBox: TextBox
-local styleRows: Frame
-local choice: { [string]: TextButton } = {}
-local look: Looks.Look = Looks.default()
 local opened = false
 local onPlay: ((string) -> ())? = nil
 local hidden: { GuiObject } = {} -- the HUD, map and hints, out of the way while the intro is up
 
 local function send()
-	ReplicatedStorage.Remotes.Intro:FireServer(nameBox.Text, look)
+	ReplicatedStorage.Remotes.Intro:FireServer(nameBox.Text)
 end
 
 local function setControls(enabled: boolean)
@@ -48,105 +42,27 @@ local function setControls(enabled: boolean)
 	end)
 end
 
-local function button(text: string, color: Color3, textColor: Color3, props: { [string]: any }): TextButton
-	local base = {
-		Text = text,
-		TextSize = 17,
-		Font = Enum.Font.GothamBold,
-		TextColor3 = textColor,
-		BackgroundColor3 = color,
-		AutoButtonColor = true,
-	}
-	for k, v in props do
-		base[k] = v
-	end
-	return Ui.make("TextButton", base, { Ui.corner(10) })
-end
-
-local function renderChoice()
-	for key, b in choice do
-		local on = (key == "outfit") == look.outfit
-		b.BackgroundColor3 = if on then Ui.ACCENT else Color3.fromHex("e6e1d6")
-		b.TextColor3 = if on then Color3.new(1, 1, 1) else Ui.INK
-	end
-	styleRows.Visible = look.outfit
-end
-
--- One row of swatches: Skin, Shirt, Pants or Cap
-local function swatchRow(order: number, label: string, field: string, colors: { Color3 })
-	local row = Ui.make("Frame", {
-		Parent = styleRows,
-		LayoutOrder = order,
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-	}, { Ui.make("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }) })
-	Ui.label(label, 14, Ui.MUTED, { Parent = row, LayoutOrder = 0 })
-	local strip = Ui.make("Frame", {
-		Parent = row,
-		LayoutOrder = 1,
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-	}, { Ui.make("UIGridLayout", { CellSize = UDim2.fromOffset(36, 36), CellPadding = UDim2.fromOffset(6, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
-	local swatches = {}
-	local function render()
-		for i, s in swatches do
-			local stroke = s:FindFirstChildOfClass("UIStroke") :: UIStroke
-			stroke.Thickness = if look[field] == i then 3 else 1
-			stroke.Color = if look[field] == i then Ui.INK else Color3.fromHex("c9c3b6")
-		end
-	end
-	for i, color in colors do
-		local s = Ui.make("TextButton", {
-			Parent = strip,
-			LayoutOrder = i,
-			Text = "",
-			BackgroundColor3 = color,
-			AutoButtonColor = true,
-		}, { Ui.corner(18), Ui.make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border }) })
-		s.Activated:Connect(function()
-			look[field] = i
-			render()
-			send()
-		end)
-		swatches[i] = s
-	end
-	render()
-end
-
 function Intro.mount(screen: ScreenGui)
-	panel = Ui.make("ScrollingFrame", {
+	panel = Ui.make("Frame", {
 		Name = "Intro",
 		Parent = screen,
 		Visible = false,
-		Position = UDim2.new(0, 16, 0, 16),
-		Size = UDim2.new(0.46, 0, 0, 0), -- its height follows the content, up to the screen (fit below)
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = 6,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
-		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 16, 0.5, 0),
+		Size = UDim2.new(0.46, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = Ui.PANEL,
 	}, {
 		Ui.corner(16),
 		Ui.pad(16),
 		Ui.make("UISizeConstraint", { MaxSize = Vector2.new(400, math.huge) }),
+		Ui.make("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
-	-- As tall as its content, but never taller than the screen: on a short phone screen it scrolls
-	local layout = Ui.make("UIListLayout", { Parent = panel, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder })
-	local function refit()
-		local tall = layout.AbsoluteContentSize.Y + 32 -- the padding, top and bottom
-		panel.Size = UDim2.new(0.46, 0, 0, math.min(tall, math.max(160, screen.AbsoluteSize.Y - 42 - PLAY_H)))
-	end
-	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(refit)
-	screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
-	refit()
 	Ui.label("Deliver a Parcel", 28, Ui.INK, { Parent = panel, LayoutOrder = 0, Font = Enum.Font.FredokaOne })
 	note = Ui.label("", 15, Ui.MUTED, {
 		Parent = panel,
 		LayoutOrder = 1,
-		Size = UDim2.new(1, -8, 0, 0),
+		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		TextWrapped = true,
 		Font = Enum.Font.Gotham,
@@ -155,7 +71,7 @@ function Intro.mount(screen: ScreenGui)
 	nameBox = Ui.make("TextBox", {
 		Parent = panel,
 		LayoutOrder = 3,
-		Size = UDim2.new(1, -8, 0, 44),
+		Size = UDim2.new(1, 0, 0, 44),
 		Text = "",
 		PlaceholderText = player.DisplayName,
 		ClearTextOnFocus = false,
@@ -170,56 +86,22 @@ function Intro.mount(screen: ScreenGui)
 	nameBox:GetPropertyChangedSignal("Text"):Connect(function()
 		local text = nameBox.Text
 		local length = utf8.len(text)
-		if length and length > Looks.NAME_MAX then
-			nameBox.Text = text:sub(1, (utf8.offset(text, Looks.NAME_MAX + 1) :: number) - 1)
+		if length and length > PlayerData.NAME_MAX then
+			nameBox.Text = text:sub(1, (utf8.offset(text, PlayerData.NAME_MAX + 1) :: number) - 1)
 		end
 	end)
 	nameBox.FocusLost:Connect(send)
-
-	Ui.label("Your look", 14, Ui.MUTED, { Parent = panel, LayoutOrder = 4 })
-	local switch = Ui.make("Frame", {
+	local play = Ui.make("TextButton", {
 		Parent = panel,
-		LayoutOrder = 5,
-		Size = UDim2.new(1, -8, 0, 44),
-		BackgroundTransparency = 1,
-	}, { Ui.make("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6) }) })
-	for _, key in { "avatar", "outfit" } do
-		local b = button(if key == "avatar" then "My avatar" else "Rider outfit", Ui.PANEL, Ui.INK, {
-			Parent = switch,
-			LayoutOrder = if key == "avatar" then 1 else 2,
-			Size = UDim2.new(0.5, -3, 1, 0),
-		})
-		b.Activated:Connect(function()
-			look.outfit = key == "outfit"
-			renderChoice()
-			send()
-		end)
-		choice[key] = b
-	end
-	styleRows = Ui.make("Frame", {
-		Parent = panel,
-		LayoutOrder = 6,
-		Size = UDim2.new(1, -8, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-	}, { Ui.make("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
-
-	-- Play sits under the panel, never scrolled out of sight
-	playButton = button("Play", Ui.GOOD, Color3.new(1, 1, 1), {
-		Name = "IntroPlay",
-		Parent = screen,
-		Visible = false,
-		Position = UDim2.new(0, 16, 0, 16),
-		Size = UDim2.new(0.46, 0, 0, PLAY_H),
+		LayoutOrder = 4,
+		Size = UDim2.new(1, 0, 0, 52),
+		Text = "Play",
 		TextSize = 22,
-	})
-	Ui.make("UISizeConstraint", { Parent = playButton, MaxSize = Vector2.new(400, PLAY_H) })
-	local function underPanel()
-		playButton.Position = UDim2.new(0, 16, 0, 16 + panel.AbsoluteSize.Y + 10)
-	end
-	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(underPanel)
-	underPanel()
-	playButton.Activated:Connect(function()
+		Font = Enum.Font.GothamBold,
+		TextColor3 = Color3.new(1, 1, 1),
+		BackgroundColor3 = Ui.GOOD,
+	}, { Ui.corner(10) })
+	play.Activated:Connect(function()
 		send()
 		Intro.close()
 	end)
@@ -239,34 +121,24 @@ end
 
 function Intro.open(state)
 	opened = true
-	look = Looks.clean(state.look) or Looks.default()
 	nameBox.Text = state.name or ""
 	note.Text = if (state.delivered or 0) == 0 and (state.homeTier or 1) == 1
 		then "You start with a cardboard box somewhere in town. Deliver food and parcels, dodge the dogs, and build it into a mansion."
 		else `₱{state.cash} · {state.delivered} deliveries · {Homes[state.homeTier].name}`
-	renderChoice()
-	local paints = {}
-	for i, p in Looks.PAINTS do
-		paints[i] = p.color
-	end
-	swatchRow(1, "Skin", "skin", Looks.SKINS)
-	swatchRow(2, "Shirt", "shirt", paints)
-	swatchRow(3, "Pants", "pants", paints)
-	swatchRow(4, "Cap", "hat", paints)
 	for _, other in (panel.Parent :: Instance):GetChildren() do
 		if other ~= panel and other:IsA("GuiObject") and other.Visible then
 			other.Visible = false
 			table.insert(hidden, other)
 		end
 	end
-	panel.Visible, playButton.Visible = true, true
+	panel.Visible = true
 	setControls(false)
 	workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
 	RunService:BindToRenderStep("Intro", Enum.RenderPriority.Camera.Value + 1, frame)
 end
 
 function Intro.close()
-	panel.Visible, playButton.Visible = false, false
+	panel.Visible = false
 	for _, other in hidden do
 		other.Visible = true
 	end
@@ -280,7 +152,7 @@ function Intro.close()
 	end
 end
 
--- The first state after joining opens the intro, with what you picked last time
+-- The first state after joining opens the intro, with the name you picked last time
 function Intro.onState(state, then_: (string) -> ())
 	if not opened then
 		onPlay = then_

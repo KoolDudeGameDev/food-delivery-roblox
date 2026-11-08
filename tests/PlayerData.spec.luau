@@ -11,21 +11,34 @@ return {
 		assert(t.cash == 0 and t.delivered == 0 and t.homeTier == 1 and t.streak == 0)
 		assert(next(t.regulars) == nil)
 	end,
-	riderNameAndLookAreSavedAndChecked = function()
+	riderNameIsSavedAndChecked = function()
 		local PlayerData = load()
-		local t = PlayerData.template()
-		assert(t.name == "" and t.look.outfit == false and t.look.skin == 1)
+		assert(PlayerData.template().name == "", "blank means their Roblox display name")
 		local d = PlayerData.template()
 		d.name = "This name is far too long"
-		d.look = { outfit = true, skin = 99, shirt = 1, pants = 1, hat = 1 }
 		PlayerData.sanitize(d)
 		assert(d.name == "", `name {d.name}`)
-		assert(d.look.outfit == false and d.look.skin == 1, "a bad look goes back to the default")
 		local ok = PlayerData.template()
 		ok.name = "Juan"
-		ok.look = { outfit = true, skin = 4, shirt = 2, pants = 3, hat = 4 }
 		PlayerData.sanitize(ok)
-		assert(ok.name == "Juan" and ok.look.outfit == true and ok.look.skin == 4 and ok.look.hat == 4)
+		assert(ok.name == "Juan")
+	end,
+	oldRiderOutfitIsDropped = function()
+		local PlayerData = load()
+		local d = PlayerData.template() :: any
+		d.look = { outfit = true, skin = 4, shirt = 2, pants = 3, hat = 4 }
+		PlayerData.sanitize(d)
+		assert(d.look == nil, "players keep their own avatar")
+	end,
+	nameIsTrimmedAndAtMostTwelveCharacters = function()
+		local PlayerData = load()
+		assert(PlayerData.cleanName("  Juan  ") == "Juan")
+		assert(PlayerData.cleanName("") == "")
+		assert(PlayerData.cleanName("   ") == "")
+		assert(PlayerData.cleanName("Mang Kanor the Great") == nil, "too long")
+		assert(PlayerData.cleanName("Ñiño Pañero") == "Ñiño Pañero", "counted in characters, not bytes")
+		assert(PlayerData.cleanName("a\nb") == nil, "no control characters")
+		assert(PlayerData.cleanName(42) == nil)
 	end,
 	templateIsAFreshTableEachTime = function()
 		local PlayerData = load()
