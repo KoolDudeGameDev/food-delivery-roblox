@@ -30,6 +30,8 @@ for is still open (Next up, item 1). The phase order and exit tests are in
 | World conditions | Day/night and a stable subset of conditions | Testing | 20-minute day, night pay, lamps, rain (pay, visibility, grip), brownout, fiesta, Undas |
 | Goals | Basic daily objectives | Testing | 3 a day, the same for everyone, paid once each |
 
+Added by Gregory, 2026-11-08: **ride hits**. A fast rider sends whoever they hit flying, sometimes minus a limb, and they pull together where they land. Orders are never touched. Testing: the fling, the limbs and the mend are checked with one player; it needs a 2-player test.
+
 Beyond the MVP but in the existing design, not started:
 - night jobs (shady packages and police);
 - the White Lady;

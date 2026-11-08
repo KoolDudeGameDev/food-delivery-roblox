@@ -22,8 +22,9 @@ local opened = false
 local onPlay: ((string) -> ())? = nil
 local hidden: { GuiObject } = {} -- the HUD, map and hints, out of the way while the intro is up
 
-local function send()
-	ReplicatedStorage.Remotes.Intro:FireServer(nameBox.Text)
+-- play: they pressed Play, so ride hits can reach them from now on
+local function send(play: boolean?)
+	ReplicatedStorage.Remotes.Intro:FireServer(nameBox.Text, play == true)
 end
 
 local function setControls(enabled: boolean)
@@ -90,7 +91,9 @@ function Intro.mount(screen: ScreenGui)
 			nameBox.Text = text:sub(1, (utf8.offset(text, PlayerData.NAME_MAX + 1) :: number) - 1)
 		end
 	end)
-	nameBox.FocusLost:Connect(send)
+	nameBox.FocusLost:Connect(function()
+		send()
+	end)
 	local play = Ui.make("TextButton", {
 		Parent = panel,
 		LayoutOrder = 4,
@@ -102,7 +105,7 @@ function Intro.mount(screen: ScreenGui)
 		BackgroundColor3 = Ui.GOOD,
 	}, { Ui.corner(10) })
 	play.Activated:Connect(function()
-		send()
+		send(true)
 		Intro.close()
 	end)
 end

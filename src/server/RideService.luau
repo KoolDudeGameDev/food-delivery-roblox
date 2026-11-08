@@ -211,6 +211,12 @@ local function park(player: Player, ride: Ride, house)
 	MoveService.setRide(player, nil)
 end
 
+-- True while the player is on their ride (not on foot, not parked at a gate)
+function RideService.riding(player: Player): boolean
+	local ride = rides[player]
+	return ride ~= nil and ride.parkedAt == nil
+end
+
 -- Builds (or clears) the player's ride from their data: after buying, fitting or choosing.
 function RideService.refresh(player: Player)
 	local old = rides[player]
