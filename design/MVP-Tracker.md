@@ -7,9 +7,11 @@ has been verified. A design written down is not a feature built (GDD §15.1).
 Statuses: Not Started, In Progress, Blocked, Testing, Completed.
 
 - **Testing** means built, with its rules unit-tested, and waiting for a playtest.
-- **Last review:** 2026-11-07.
+- **Last review:** 2026-11-08.
 
-Everything since the first build sits on PR #1 (`town-map-and-chase`), not yet merged.
+PR #1 (`town-map-and-chase`) was merged into `main` on 2026-11-07. The playtest it was waiting
+for is still open (Next up, item 1). The phase order and exit tests are in
+[Roadmap.md](Roadmap.md); this file is the only place status is kept.
 
 ## MVP scope (GDD §14.1)
 
@@ -53,7 +55,7 @@ Beyond the MVP but in the existing design, not started:
 | Phase | Status | Notes |
 | --- | --- | --- |
 | 1. Concept validation and game design | Completed | GDD v1.0 and World Layout Blueprint v0.1 |
-| 2. Technical foundation and architecture | Testing | Rojo and Rokit, remotes, ProfileStore, shared rules with 60 unit tests, the Blueprint §15 hierarchy |
+| 2. Technical foundation and architecture | Testing | Rojo and Rokit, remotes, ProfileStore, shared rules with 60 unit tests, the Blueprint §15 hierarchy. Documented in [Phase_2_Technical_Architecture.md](Phase_2_Technical_Architecture.md), with its exit checklist |
 | 3. Core gameplay | Testing | The delivery loop, chasers, the map, gates, the conveyor, carried packages |
 | 4. Progression and economy | In Progress | Rides, parts, homes, shops, sprint, daily goals, streaks, regulars. **Next:** paint and decor, and the economy check |
 | 5. World building and content | In Progress | The Blueprint graybox is complete. The soundscape is in, and the first Toolbox art (6 roles). **Next:** the remaining art roles |
@@ -64,9 +66,12 @@ Beyond the MVP but in the existing design, not started:
 
 ## Next up, in order
 
-This follows GDD §15 and Gregory's priority: gameplay first, polish after.
+This follows [Roadmap.md](Roadmap.md) (GDD §15, closing one phase at a time) and Gregory's
+priority: gameplay first, polish after.
 
-1. **Playtest PR #1, then merge.** Run the Studio suite and a 2-player test. Look for:
+1. **Playtest `main` and close Phase 2.** Run the Studio suite, the 2-player test and the save
+   checks in the [Phase 2 exit checklist](Phase_2_Technical_Architecture.md#exit-checklist-phase-2).
+   Look for:
    - flicker;
    - gates opening for the right order;
    - the dog's warning before it chases;
