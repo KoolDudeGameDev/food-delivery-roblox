@@ -1,6 +1,5 @@
 -- Daily goals (prototype `goals.js`, GDD §10.2): three a day, the same for everyone on the same
--- date, each paid once. A new goal is one more row. The prototype's "finish a shady job" goal
--- waits for night jobs.
+-- date, each paid once. A new goal is one more row.
 local Goals = {}
 
 export type Goal = { type: number, progress: number, done: boolean }
@@ -14,6 +13,7 @@ Goals.TYPES = {
 	{ event = "hardOrder", count = 2, reward = 400, text = "Finish 2 orders of 4 stars or more" },
 	{ event = "cemeteryNight", count = 1, reward = 350, text = "Deliver to the cemetery at night" },
 	{ event = "streak", count = 5, reward = 300, text = "Reach a streak of 5" },
+	{ event = "shady", count = 1, reward = 300, text = "Finish a shady job" },
 }
 
 function Goals.indexOf(event: string): number?

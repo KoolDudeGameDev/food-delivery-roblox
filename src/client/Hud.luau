@@ -166,6 +166,8 @@ function Hud.onNotify(message)
 		Hud.toast(message.text)
 	elseif message.kind == "bite" then
 		Hud.toast(message.text, Color3.fromHex("d6402b"))
+	elseif message.kind == "deal" then
+		Hud.toast(`Deal done! +₱{message.total}`, Ui.GOOD)
 	elseif message.kind == "rammed" then
 		Hud.toast(message.text, Ui.ACCENT)
 	elseif message.kind == "paid" then

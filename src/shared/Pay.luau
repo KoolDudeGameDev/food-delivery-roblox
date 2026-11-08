@@ -58,4 +58,11 @@ function Pay.delivery(order: { pay: number, max: number }, ctx: DeliveryContext)
 	return { tip = tip, bonus = bonus, total = total, rating = rating }
 end
 
+-- A shady job (prototype `orders.js`): it already pays well for the risk, so it gets the home,
+-- streak and event bonuses but no tip and no night pay, and the buyer doesn't rate it.
+function Pay.deal(pay: number, ctx: { homeBonus: number?, streak: number?, eventBonus: number? }): { total: number }
+	local bonus = 1 + (ctx.homeBonus or 0) + math.min((ctx.streak or 0) * Config.STREAK_STEP, Config.STREAK_MAX) + (ctx.eventBonus or 0)
+	return { total = round(pay * bonus) }
+end
+
 return Pay

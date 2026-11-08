@@ -27,7 +27,9 @@ local S = Config.STUDS
 local ACCEPT_GAP = 0.25 -- s between one player's accept requests
 local REACH_SLACK = 2 -- m of slack on the hub reach, for lag
 
-type Order = Offers.Offer & { id: string, deadline: number, fresh: number }
+-- A shady package (night jobs) goes to a buyer's spot, not a house: houseId is "", and it's
+-- light, so it doesn't slow you down like a parcel.
+type Order = Offers.Offer & { id: string, deadline: number, fresh: number, spot: { x: number, z: number }?, contraband: boolean? }
 type State = {
 	offers: { Offers.Offer & { id: string } },
 	offersDeadline: number,
@@ -54,6 +56,11 @@ end
 local function rootOf(player: Player): BasePart?
 	local character = player.Character
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+-- Where an order is delivered, in metres: the house's doorstep, or the buyer's spot
+local function targetOf(order: Order): { x: number, z: number }
+	return order.spot or WorldLayout.byId[order.houseId].step
 end
 
 local function flatDistance(a: Vector3, b: Vector3): number
@@ -119,7 +126,7 @@ local function push(player: Player)
 	end
 	local orders = {}
 	for _, o in state.orders do
-		local step = WorldLayout.byId[o.houseId].step
+		local step = targetOf(o)
 		table.insert(orders, {
 			id = o.id,
 			title = o.title,
@@ -128,6 +135,7 @@ local function push(player: Player)
 			max = o.max,
 			deadline = o.deadline,
 			fresh = o.fresh,
+			contraband = o.contraband,
 			target = WorldLayout.studs(step.x, step.z),
 		})
 	end
@@ -199,7 +207,7 @@ local function updateSpeed(player: Player)
 	local state = states[player]
 	local parcel = false
 	for _, o in if state then state.orders else {} do
-		parcel = parcel or not o.food
+		parcel = parcel or not (o.food or o.contraband)
 	end
 	MoveService.setParcel(player, parcel)
 	syncCarry(player)
@@ -224,13 +232,15 @@ local function timeout(player: Player, state: State, order: Order)
 	if not (data and removeOrder(state, order)) then
 		return
 	end
-	rate(data, 1)
+	if not order.contraband then
+		rate(data, 1) -- the buyer of a shady package doesn't rate you
+	end
 	if data.streak >= 3 then
 		notify(player, { kind = "toast", text = `Streak of {data.streak} lost!` })
 	end
 	data.streak = 0
 	DataService.changed(player)
-	notify(player, { kind = "toast", text = "Too late! Order cancelled, 1 star" })
+	notify(player, { kind = "toast", text = if order.contraband then "Too late. The buyer left" else "Too late! Order cancelled, 1 star" })
 	updateSpeed(player)
 	push(player)
 end
@@ -239,6 +249,29 @@ local function deliver(player: Player, state: State, order: Order)
 	local data = DataService.get(player)
 	-- Removed before paying, so the same order can never pay twice
 	if not (data and removeOrder(state, order)) then
+		return
+	end
+	if order.contraband then
+		-- A shady job: bonuses, but no tip, no night pay and no rating (prototype `orders.js`)
+		local deal = Pay.deal(order.pay, {
+			homeBonus = Homes[data.homeTier].bonus,
+			streak = data.streak,
+			eventBonus = WorldClock.eventBonus(WorldService.weather(), false, ""),
+		})
+		data.cash += deal.total
+		data.delivered += 1
+		data.streak += 1
+		local goals = Goals.current(data.goals, today())
+		data.goals = goals
+		local reward = Goals.count(goals, "delivered", 1) + Goals.count(goals, "shady", 1) + Goals.count(goals, "streak", data.streak)
+		data.cash += reward
+		DataService.changed(player)
+		if reward > 0 then
+			notify(player, { kind = "toast", text = `Goal done! +₱{reward}` })
+		end
+		notify(player, { kind = "deal", total = deal.total })
+		updateSpeed(player)
+		push(player)
 		return
 	end
 	local visits = data.regulars[order.houseId] or 0
@@ -337,7 +370,7 @@ local function tick()
 	for player, state in states do
 		for _, order in table.clone(state.orders) do
 			local root = rootOf(player)
-			local step = WorldLayout.byId[order.houseId].step
+			local step = targetOf(order)
 			if t >= order.deadline then
 				timeout(player, state, order)
 			elseif root and flatDistance(root.Position, WorldLayout.studs(step.x, step.z)) < Config.DELIVER_REACH * S then
@@ -420,6 +453,58 @@ function OrderService.carriesFor(player: Player, houseId: string): boolean
 		end
 	end
 	return false
+end
+
+-- Night jobs: a shady package from a dealer to a buyer's spot (NightJobService decides when).
+-- Returns why it can't be taken, or nil once it's carried.
+function OrderService.addContraband(player: Player, spot: { x: number, z: number }, pay: number, max: number): string?
+	local state, data = states[player], DataService.get(player)
+	if not (state and data) then
+		return "Still loading"
+	end
+	if #state.orders >= Shop.stats(data).carry then
+		return "Your ride is full"
+	end
+	nextId += 1
+	table.insert(state.orders, {
+		id = `c{nextId}`,
+		houseId = "",
+		typeKey = "normal",
+		food = false,
+		stars = 0,
+		pay = pay,
+		max = max,
+		title = "Shady package to the buyer",
+		deadline = now() + max,
+		fresh = 100,
+		spot = spot,
+		contraband = true,
+	} :: any)
+	updateSpeed(player)
+	push(player)
+	return nil
+end
+
+-- Wanted by the police: carrying a shady package
+function OrderService.wanted(player: Player): boolean
+	local state = states[player]
+	for _, o in if state then state.orders else {} do
+		if o.contraband then
+			return true
+		end
+	end
+	return false
+end
+
+-- An arrest takes every order you carry (prototype `clearOrders`)
+function OrderService.clearAll(player: Player)
+	local state = states[player]
+	if not state then
+		return
+	end
+	table.clear(state.orders)
+	updateSpeed(player)
+	push(player)
 end
 
 OrderService.updateSpeed = updateSpeed

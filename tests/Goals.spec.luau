@@ -5,6 +5,11 @@ local function load()
 end
 
 return {
+	aShadyJobIsADailyGoal = function()
+		local Goals = load()
+		local i = Goals.indexOf("shady")
+		assert(i and Goals.TYPES[i].reward == 300 and Goals.TYPES[i].count == 1, "the prototype's shady goal")
+	end,
 	sameDaySameGoals = function()
 		local Goals = load()
 		local a, b = Goals.forDay("2026-11-07"), Goals.forDay("2026-11-07")
