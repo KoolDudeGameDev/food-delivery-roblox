@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local RamRules = require(ReplicatedStorage.Shared.RamRules)
+local NameService = require(script.Parent.NameService)
 local RideService = require(script.Parent.RideService)
 
 local RamService = {}
@@ -140,12 +141,13 @@ local function step()
 		end
 	end
 	for _, rider in here do
-		if not RideService.riding(rider.player) or now < (immuneUntil[rider.player] or 0) then
-			continue -- on foot, or in pieces themselves
+		if not RideService.riding(rider.player) or now < (immuneUntil[rider.player] or 0) or NameService.inIntro(rider.player) then
+			continue -- on foot, in pieces themselves, or not playing yet
 		end
 		local mover = { x = rider.x, z = rider.z, vx = rider.v.X, vz = rider.v.Z }
 		for _, other in here do
-			if other ~= rider and now >= (immuneUntil[other.player] or 0) and RamRules.hits(mover, other) then
+			-- Nobody can be hit while still on the intro (Gregory, 2026-11-08)
+			if other ~= rider and now >= (immuneUntil[other.player] or 0) and RamRules.hits(mover, other) and not NameService.inIntro(other.player) then
 				RamService.hit(rider.player, other.player, mover.vx, mover.vz)
 			end
 		end
