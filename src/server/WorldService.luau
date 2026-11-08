@@ -222,6 +222,16 @@ function WorldService.start()
 			workspace:SetAttribute("StartEvent", "")
 		end
 	end)
+	-- Playtest helper: set workspace attribute SetClock to an hour (0 to 24) to jump the day there,
+	-- e.g. 22 for the White Lady. Only the server (or Studio's command bar) can set it.
+	workspace:GetAttributeChangedSignal("SetClock"):Connect(function()
+		local hour = workspace:GetAttribute("SetClock")
+		if type(hour) == "number" and hour >= 0 and hour < 24 then
+			clock = hour
+			Lighting.ClockTime = clock
+			workspace:SetAttribute("SetClock", nil)
+		end
+	end)
 	RunService.Heartbeat:Connect(step)
 end
 

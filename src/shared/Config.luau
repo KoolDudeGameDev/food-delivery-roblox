@@ -66,6 +66,15 @@ Config.DOG_ALERT = 0.6 -- s a dog stands and barks before it chases (Gregory's c
 Config.BITE_GAP = 1.2 -- s between one dog's bites
 Config.DOG_WAKE = 60 -- m: dogs with nobody this close stay asleep, to save the server work
 
+-- The White Lady (GDD §5.1, the prototype's values; to tune)
+Config.GHOST_SPEED = 3.4 -- m/s: slower than you, but she never stops
+Config.GHOST_DAMAGE = 40 -- % of each order's condition
+Config.GHOST_REACH = 1.4 -- m: her touch
+Config.GHOST_COOLDOWN = 2.5 -- s she's gone after a scare, so you get a moment to run
+Config.GHOST_KNOCK = 12 -- m/s away from her, and GHOST_LIFT up
+Config.GHOST_LIFT = 5
+Config.GHOST_STUN = 0.5 -- s
+
 -- Ride hits (Gregory, 2026-11-08): a rider this fast sends whoever they run into flying. All to tune.
 Config.RAM_SPEED = 6 -- m/s the rider must be going
 Config.RAM_REACH = 2.2 -- m from the rider to whoever they hit
