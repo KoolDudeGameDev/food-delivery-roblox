@@ -58,27 +58,22 @@ local function showDecor(lot, decor: { [string]: boolean })
 end
 
 -- Rebuilds the home on a lot from a player's save: the tier, from Toolbox art if there is any,
--- else graybox; its paint (on art, the parts tagged "Paint"); and the garden things.
+-- else the built-in kit; its paint (the parts tagged "Paint"); and the garden things.
 function LotService.showHome(lot, data)
 	local home = lotModel(lot.id).Home
 	home:ClearAllChildren()
 	local def = Homes[data.homeTier]
 	local paint = Cosmetics.PAINTS[data.paint.house]
 	local yaw = math.atan2(lot.dx, lot.dz)
-	local art = WorldBuilder.art(`Home_{data.homeTier}`, CFrame.new(WorldLayout.studs(lot.x, lot.z)) * CFrame.Angles(0, yaw, 0), home)
-	if art then
-		if paint then
-			for _, part in art:GetDescendants() do
-				if part:IsA("BasePart") and CollectionService:HasTag(part, "Paint") then
-					part.Color = paint.color
-				end
+	local role, pivot = `Home_{data.homeTier}`, CFrame.new(WorldLayout.studs(lot.x, lot.z)) * CFrame.Angles(0, yaw, 0)
+	local size = { w = def.size[1] * 2 * def.scale, d = def.size[2] * 2 * def.scale, h = def.height * def.scale }
+	local model = WorldBuilder.art(role, pivot, home) or WorldBuilder.kit(role, pivot, home, size)
+	if model and paint then
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") and CollectionService:HasTag(part, "Paint") then
+				part.Color = paint.color
 			end
 		end
-	else
-		local w, d, h = def.size[1] * 2 * def.scale, def.size[2] * 2 * def.scale, def.height * def.scale
-		local color = if paint then paint.color else Color3.fromHex("b98a56")
-		local body = WorldBuilder.block(home, def.name, w, h, d, color, lot.x, h / 2, lot.z)
-		body.CFrame = CFrame.new(body.Position) * CFrame.Angles(0, yaw, 0)
 	end
 	showDecor(lot, data.decor)
 end
