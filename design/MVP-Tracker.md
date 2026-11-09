@@ -93,8 +93,7 @@ priority: gameplay first, polish after.
 5. **Economy check** (GDD §16, [Economy-Check.md](Economy-Check.md)): tuned 2026-11-09 to
    Gregory's calls: a +15% bonus cap, smaller event and home bonuses, and the bicycle at about
    minute 30 (now ₱1,300, with the skateboard at ₱700). The bulk playtest checks the real minutes.
-6. **Night content:** ~~the White Lady~~ built 2026-11-08 (prototype `ghost.js`: cemetery after dark, 3.4 m/s, 40% order damage, far-corner return; `workspace.SetClock` jumps the day for playtests). Shady jobs and police built 2026-11-08 (prototype `contraband.js`, `police.js`; the shady daily goal is back). **Gregory to decide:** the arrest cost (25% of cash and every order, which the GDD asks to review for a casual audience) and whether the buyer's clock (0.9x straight-line running time, so sprint or ride) suits a 500 m map. The casual target means
-   reviewing the 25% arrest cost first (GDD Appendix A).
+6. **Night content:** ~~the White Lady~~ built 2026-11-08 (prototype `ghost.js`: cemetery after dark, 3.4 m/s, 40% order damage, far-corner return; `workspace.SetClock` jumps the day for playtests). Shady jobs and police built 2026-11-08 (prototype `contraband.js`, `police.js`; the shady daily goal is back). The arrest cost stays as it is: 25% of cash and every order carried (Gregory reviewed it against GDD Appendix A, 2026-11-09). **Gregory to decide:** whether the buyer's clock (0.9x straight-line running time, so sprint or ride) suits a 500 m map.
 7. ~~**Living town:**~~ built 2026-11-08 (prototype `traffic.js`, `citizens.js`): 6 jeepneys and tricycles on the ring roads, 12 walkers on the sidewalks (a third stay out at night), bumps and the ₱15 "Hoy! Watch it!" fine. Not yet: the pickleball pair and the dogs on leashes.
 8. **Phase 8:**
    - a real-phone pass;
