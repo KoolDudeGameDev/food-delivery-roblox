@@ -7,7 +7,7 @@ has been verified. A design written down is not a feature built (GDD §15.1).
 Statuses: Not Started, In Progress, Blocked, Testing, Completed.
 
 - **Testing** means built, with its rules unit-tested, and waiting for a playtest.
-- **Last review:** 2026-11-08.
+- **Last review:** 2026-11-09.
 
 PR #1 (`town-map-and-chase`) was merged into `main` on 2026-11-07. The playtest it was waiting
 for is still open (Next up, item 1). The phase order and exit tests are in
@@ -77,7 +77,12 @@ priority: gameplay first, polish after.
    - the conveyor and the carried package;
    - the shops;
    - rain grip.
-2. **Finish the art pass** (sound and 6 art roles done 2026-11-07, see `CREDITS.md`).
+2. **Finish the art pass** (sound and 6 art roles done 2026-11-07, see `CREDITS.md`). Built-in kit
+   2026-11-09 (`Data/Kit.luau`, models made of parts, so no Toolbox and no meshes): the warehouse,
+   the dealer, the mechanic, the barangay hall, the 4 towers, the large house (bahay na bato, with a
+   Door that swings and lit windows) and the 5 home tiers (painted by the house paint). Toolbox art
+   in `ServerStorage.Assets` still replaces any of them. Still graybox: shrubs, waiting sheds,
+   benches and bins.
    - Gregory: listen to the sounds and tune the volumes in `Data/Sounds.luau`; replace the three
      public-upload animal calls if a licensed one turns up.
    - Roles still graybox: `House_large` (the bahay na bato in the series are whole compounds, too

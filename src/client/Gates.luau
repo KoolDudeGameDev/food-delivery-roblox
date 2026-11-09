@@ -68,7 +68,7 @@ function Gates.delivered(houseId: string, total: number)
 	end
 	local houses = workspace:FindFirstChild("Gameplay") and workspace.Gameplay:FindFirstChild("CustomerHouses")
 	for _, model in if houses then houses:GetChildren() else {} do
-		local door = model:GetAttribute("HouseId") == houseId and model:FindFirstChild("Door") :: BasePart?
+		local door = model:GetAttribute("HouseId") == houseId and model:FindFirstChild("Door", true) :: BasePart?
 		if door then
 			local shut = door.CFrame
 			local hinge = shut * CFrame.new(-door.Size.X / 2, 0, 0)

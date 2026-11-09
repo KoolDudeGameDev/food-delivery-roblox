@@ -1,12 +1,14 @@
 -- Builds the graybox town from WorldLayout, in the Blueprint's hierarchy (§15):
 -- Workspace.World/<District> for scenery, Workspace.Gameplay/<System> for what play depends on.
 -- Art comes first from vetted Toolbox models in ServerStorage.Assets (by role name; see
--- CREDITS.md). The graybox block is the fallback, so the town always builds.
+-- CREDITS.md), then from the built-in kit (Data/Kit), then plain graybox blocks, so the town
+-- always builds.
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Kit = require(ReplicatedStorage.Shared.Data.Kit)
 local WorldLayout = require(ReplicatedStorage.Shared.WorldLayout)
 
 local WorldBuilder = {}
@@ -102,6 +104,32 @@ local function art(role: string, pivot: CFrame, parent: Instance): Model?
 end
 WorldBuilder.art = art
 
+-- The built-in kit's model for this role (Data/Kit), placed at a pivot, or nil if it has none
+local function kit(role: string, pivot: CFrame, parent: Instance, params: { [string]: any }?): Model?
+	local make = (Kit :: any)[role]
+	if not make then
+		return nil
+	end
+	local model = Instance.new("Model")
+	model.Name = role
+	for _, b in make(params or {}) do
+		local o = b[9] or {}
+		local part = block(model, b[1], b[2], b[3], b[4], hex(b[5]), 0, 0, 0, if o.m then (Enum.Material :: any)[o.m] else nil)
+		if o.shape then
+			part.Shape = (Enum.PartType :: any)[o.shape]
+		end
+		part.CFrame = pivot * CFrame.new(b[6] * S, b[7] * S, b[8] * S) * CFrame.Angles(o.rx or 0, o.ry or 0, o.rz or 0)
+		part.Transparency = o.alpha or 0
+		part.CanCollide = not o.ghost
+		if o.tag then
+			CollectionService:AddTag(part, o.tag)
+		end
+	end
+	model.Parent = parent
+	return model
+end
+WorldBuilder.kit = kit
+
 local function yawFacing(dx: number, dz: number): number
 	return math.atan2(dx, dz) -- turns +z to point along (dx, dz)
 end
@@ -170,12 +198,7 @@ local function buildHub()
 	local w = WorldLayout.WAREHOUSE
 	local front = w.z + w.d / 2
 	if not art("Warehouse", CFrame.new(WorldLayout.studs(w.x, w.z)), warehouse) then
-		local orange = hex("ff7a45")
-		block(warehouse, "Back", w.w, 7, 0.6, orange, w.x, 3.5, w.z - w.d / 2)
-		block(warehouse, "SideW", 0.6, 7, w.d, orange, w.x - w.w / 2, 3.5, w.z)
-		block(warehouse, "SideE", 0.6, 7, w.d, orange, w.x + w.w / 2, 3.5, w.z)
-		block(warehouse, "Roof", w.w + 1, 0.5, w.d + 1, hex("e06a38"), w.x, 7.25, w.z)
-		block(warehouse, "Lintel", w.w + 1, 0.8, 0.6, orange, w.x, 6.6, front - 0.1)
+		kit("Warehouse", CFrame.new(WorldLayout.studs(w.x, w.z)), warehouse, w)
 		sign(warehouse, "ORDERS", 11, 2.8, w.x, 8.9, front + 0.1, 0, hex("d6402b"), Color3.new(1, 1, 1))
 	end
 	block(warehouse, "Counter", w.w - 1.4, 1.1, 1.2, hex("6a6f78"), w.x, 0.7, front - 0.6, Enum.Material.Metal)
@@ -205,9 +228,11 @@ local function buildHub()
 
 	for key, shop in WorldLayout.SHOPS do
 		local f = folder(shop.label, logistics)
-		if not art(key == "dealer" and "Dealer" or "Mechanic", CFrame.new(WorldLayout.studs(shop.x, shop.z)), f) then
-			block(f, "Body", 15, 6, 10, shop.color, shop.x, 3, shop.z)
-			block(f, "Roof", 16, 0.4, 11, hex("3a3f48"), shop.x, 6.2, shop.z)
+		-- Turned so the model's front (+z) faces the doorstep to the north
+		local pivot = CFrame.new(WorldLayout.studs(shop.x, shop.z)) * CFrame.Angles(0, math.pi, 0)
+		local role = if key == "dealer" then "Dealer" else "Mechanic"
+		if not art(role, pivot, f) then
+			kit(role, pivot, f, { color = shop.color:ToHex() })
 		end
 		-- The shop's front faces north (-z), towards its doorstep
 		sign(f, shop.label, 10, 2.4, shop.x, 7.8, shop.z - 5.2, math.pi, Color3.new(1, 1, 1), hex("222222"))
@@ -280,12 +305,13 @@ local function buildHouse(h)
 
 	-- The house, near the back of the yard
 	local hx, hz = at(0, geo.bodyV)
-	local body = art(`House_{h.size}`, CFrame.new(WorldLayout.studs(hx, hz)) * CFrame.Angles(0, yaw, 0), model)
+	local pivot = CFrame.new(WorldLayout.studs(hx, hz)) * CFrame.Angles(0, yaw, 0)
+	local body = art(`House_{h.size}`, pivot, model)
 	if body then
 		-- Scaled about its base to fill the footprint's width; the box is in the house's own axes
 		local _, box = body:GetBoundingBox()
 		body:ScaleTo(body:GetScale() * size.w * S / box.X)
-	else
+	elseif not kit(`House_{h.size}`, pivot, model, { color = h.color:ToHex() }) then
 		local floors = size.h * size.floors
 		local walls = block(model, "Body", size.w, floors, size.d, h.color, hx, floors / 2, hz)
 		walls.CFrame = CFrame.new(walls.Position) * CFrame.Angles(0, yaw, 0)
@@ -462,16 +488,15 @@ local function buildScenery()
 	local town, community = world.TownCenter, world.CommunityDistrict
 	for i, t in WorldLayout.TOWERS do
 		if not art("Tower", CFrame.new(WorldLayout.studs(t.x, t.z)), town) then
-			block(town, `Tower{i}`, t.w, t.floors * 6, t.d, hex(t.color), t.x, t.floors * 3, t.z, Enum.Material.Concrete)
-			block(town, `TowerRoof{i}`, t.w + 1, 0.6, t.d + 1, hex("6e7480"), t.x, t.floors * 6 + 0.3, t.z)
+			kit("Tower", CFrame.new(WorldLayout.studs(t.x, t.z)), town, t).Name = `Tower{i}`
 		end
 	end
 	-- The barangay hall, facing north onto the West Link, with a flag and a notice board out front
 	local b = WorldLayout.BARANGAY
 	local front = b.z - b.d / 2
-	if not art("Barangay", CFrame.new(WorldLayout.studs(b.x, b.z)) * CFrame.Angles(0, math.pi, 0), community) then
-		block(community, "BarangayHall", b.w, 6, b.d, hex("f4efe4"), b.x, 3, b.z, Enum.Material.Concrete)
-		block(community, "BarangayRoof", b.w + 1, 0.6, b.d + 1, hex("2f6db5"), b.x, 6.3, b.z)
+	local hall = CFrame.new(WorldLayout.studs(b.x, b.z)) * CFrame.Angles(0, math.pi, 0)
+	if not art("Barangay", hall, community) then
+		kit("Barangay", hall, community, b)
 	end
 	sign(community, "BARANGAY HALL", 9, 1.4, b.x, 5, front - 0.1, math.pi, hex("2f6db5"), Color3.new(1, 1, 1))
 	block(community, "Flagpole", 0.2, 8, 0.2, hex("d6d9de"), b.x - 4, 4, front - 2)
