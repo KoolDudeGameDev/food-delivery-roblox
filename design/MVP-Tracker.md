@@ -7,7 +7,7 @@ has been verified. A design written down is not a feature built (GDD §15.1).
 Statuses: Not Started, In Progress, Blocked, Testing, Completed.
 
 - **Testing** means built, with its rules unit-tested, and waiting for a playtest.
-- **Last review:** 2026-11-08.
+- **Last review:** 2026-11-09.
 
 PR #1 (`town-map-and-chase`) was merged into `main` on 2026-11-07. The playtest it was waiting
 for is still open (Next up, item 1). The phase order and exit tests are in
@@ -40,7 +40,7 @@ Beyond the MVP but in the existing design, not started:
 | --- | --- | --- | --- |
 | 1 | A new player can understand and complete a delivery | Testing | Gregory completed a paid delivery in Studio (₱69, an earlier build). Still needs a playtest with someone new to the game |
 | 2 | The server validates order acceptance, delivery and payment | Testing | `OrderService` checks reach, that the offer exists, carry and a rate limit; it checks the doorstep distance and the deadline; `Pay` is unit tested |
-| 3 | Invalid or duplicate reward requests are rejected | Testing | Bad ids, gone offers and out-of-reach requests are refused, and an order is removed before it pays. **Gap:** delivery trusts the character's position, so a teleport check is due in phase 8 |
+| 3 | Invalid or duplicate reward requests are rejected | Testing | Bad ids, gone offers and out-of-reach requests are refused, and an order is removed before it pays. The teleport check on delivery (2026-11-09): a door reached faster than the player's top speed allows doesn't pay until the time has passed, and the server logs it. Needs a playtest |
 | 4 | Chasers work in multiplayer without breaking order state | Testing | Server-run `ChaserRules` (unit tested). Needs a 2-player playtest |
 | 5 | Players can buy and visibly equip upgrades | Testing | `Shop` is unit tested. Gregory's playtest found the blank shop panel, which is fixed and needs a retest |
 | 6 | Home and progression data persist across sessions | In Progress | Needs a published place with API access, then a rejoin test |
@@ -99,7 +99,8 @@ priority: gameplay first, polish after.
 8. **Phase 8:**
    - a real-phone pass;
    - a performance profile with 7 players;
-   - exploit hardening (movement and teleport checks on delivery);
+   - exploit hardening (the teleport check on delivery is built, 2026-11-09; a general movement
+     check is not);
    - a live DataStore and two-server test.
 9. **Phase 9:**
    - icon and thumbnails;

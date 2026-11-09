@@ -4,6 +4,16 @@ local function load()
 end
 
 return {
+	tooFastCatchesATeleportButNotARide = function()
+		local Offers = load()
+		local Config = require(script.Parent.Parent.Shared.Config)
+		assert(Offers.tooFast(200, 1, 10), "200 m in 1 s at 10 m/s")
+		assert(not Offers.tooFast(200, 20, 10), "200 m in 20 s at 10 m/s")
+		-- the slack: 1.5 x 10 m/s for 10 s, plus the slop
+		assert(not Offers.tooFast(150 + Config.TRAVEL_SLOP, 10, 10), "right at the limit")
+		assert(Offers.tooFast(151 + Config.TRAVEL_SLOP, 10, 10), "just past it")
+		assert(not Offers.tooFast(Config.TRAVEL_SLOP, 0, 10), "a knock or a spawn offset")
+	end,
 	offerUsesThePayFormulas = function()
 		local Offers, WorldLayout, Pay, Types = load()
 		local red = WorldLayout.byId.red

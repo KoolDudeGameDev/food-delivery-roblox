@@ -29,13 +29,14 @@ local REACH_SLACK = 2 -- m of slack on the hub reach, for lag
 
 -- A shady package (night jobs) goes to a buyer's spot, not a house: houseId is "", and it's
 -- light, so it doesn't slow you down like a parcel.
-type Order = Offers.Offer & { id: string, deadline: number, fresh: number, spot: { x: number, z: number }?, contraband: boolean? }
+type Order = Offers.Offer & { id: string, deadline: number, fresh: number, spot: { x: number, z: number }?, contraband: boolean?, tooFast: boolean? }
 type State = {
 	offers: { Offers.Offer & { id: string } },
 	offersDeadline: number,
 	orders: { Order },
 	lastHouse: string?,
 	lastAccept: number,
+	from: { x: number, z: number, t: number }?, -- where and when the current trip began (metres), for the teleport check
 }
 
 local states: { [Player]: State } = {}
@@ -65,6 +66,24 @@ end
 
 local function flatDistance(a: Vector3, b: Vector3): number
 	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
+end
+
+-- Start the teleport check's clock from where the player stands now
+local function markFrom(player: Player, state: State?)
+	local root = rootOf(player)
+	if state and root then
+		state.from = { x = root.Position.X / S, z = root.Position.Z / S, t = now() }
+	end
+end
+
+-- Could the player have got from the trip's start to here this fast? (Offers.tooFast)
+local function tooFast(player: Player, state: State, step: { x: number, z: number }): boolean
+	local from, data = state.from, DataService.get(player)
+	if not (from and data) then
+		return false
+	end
+	local top = math.max(Config.SPRINT, Shop.stats(data).speed * Config.RIDE_SPRINT)
+	return Offers.tooFast(math.sqrt((step.x - from.x) ^ 2 + (step.z - from.z) ^ 2), now() - from.t, top)
 end
 
 local function newId(): string
@@ -251,6 +270,7 @@ local function deliver(player: Player, state: State, order: Order)
 	if not (data and removeOrder(state, order)) then
 		return
 	end
+	markFrom(player, state) -- the next trip starts at this door
 	if order.contraband then
 		-- A shady job: bonuses, but no tip, no night pay and no rating (prototype `orders.js`)
 		local deal = Pay.deal(order.pay, {
@@ -356,6 +376,7 @@ local function accept(player: Player, offerId: unknown)
 	order.deadline = now() + offer.max
 	order.fresh = 100
 	table.insert(state.orders, order)
+	markFrom(player, state)
 	state.lastHouse = offer.houseId
 	renew(player, state, data)
 	notify(player, { kind = "toast", text = if offer.food then "Hot food! Go go go!" else "Parcel: heavy, so you move slower" })
@@ -374,7 +395,12 @@ local function tick()
 			if t >= order.deadline then
 				timeout(player, state, order)
 			elseif root and flatDistance(root.Position, WorldLayout.studs(step.x, step.z)) < Config.DELIVER_REACH * S then
-				deliver(player, state, order)
+				if not tooFast(player, state, step) then
+					deliver(player, state, order)
+				elseif not order.tooFast then
+					order.tooFast = true -- it pays once the time has passed; logged once for review
+					warn(`Teleport check: {player.Name} reached order {order.id} too fast`)
+				end
 			end
 		end
 		if t >= state.offersDeadline or #state.offers == 0 then
@@ -398,6 +424,7 @@ function OrderService.start()
 	local function watch(player: Player)
 		player.CharacterAdded:Connect(function()
 			task.defer(updateSpeed, player)
+			task.defer(markFrom, player, states[player]) -- a respawn starts the trip again from the spawn
 		end)
 	end
 	Players.PlayerAdded:Connect(watch)
@@ -480,6 +507,7 @@ function OrderService.addContraband(player: Player, spot: { x: number, z: number
 		spot = spot,
 		contraband = true,
 	} :: any)
+	markFrom(player, state)
 	updateSpeed(player)
 	push(player)
 	return nil
