@@ -7,7 +7,7 @@ has been verified. A design written down is not a feature built (GDD §15.1).
 Statuses: Not Started, In Progress, Blocked, Testing, Completed.
 
 - **Testing** means built, with its rules unit-tested, and waiting for a playtest.
-- **Last review:** 2026-11-08.
+- **Last review:** 2026-11-09.
 
 PR #1 (`town-map-and-chase`) was merged into `main` on 2026-11-07. The playtest it was waiting
 for is still open (Next up, item 1). The phase order and exit tests are in
@@ -90,9 +90,9 @@ priority: gameplay first, polish after.
 3. ~~**The Intro**~~ Built 2026-11-08 (`NameService`, `client/Intro`). Players keep their own
    Roblox avatar; the rider outfit was dropped (Gregory's call).
 4. ~~**Paint and decor**~~ Built 2026-11-08: the prototype's 10 paints for house and ride, and its 6 garden things (flower bed, flag, gnome, fountain, pet dog, string lights). Needs a real purchase in a playtest.
-5. **Economy check** (GDD §16): simulated 2026-11-08 ([Economy-Check.md](Economy-Check.md)): first
-   ride at about minute 6, first home upgrade at about 10. Gregory sets the targets, the bonus cap
-   and the failure payout; the bulk playtest checks the real minutes.
+5. **Economy check** (GDD §16, [Economy-Check.md](Economy-Check.md)): tuned 2026-11-09 to
+   Gregory's calls: a +15% bonus cap, smaller event and home bonuses, and the bicycle at about
+   minute 30 (now ₱1,300, with the skateboard at ₱700). The bulk playtest checks the real minutes.
 6. **Night content:** ~~the White Lady~~ built 2026-11-08 (prototype `ghost.js`: cemetery after dark, 3.4 m/s, 40% order damage, far-corner return; `workspace.SetClock` jumps the day for playtests). Shady jobs and police built 2026-11-08 (prototype `contraband.js`, `police.js`; the shady daily goal is back). **Gregory to decide:** the arrest cost (25% of cash and every order, which the GDD asks to review for a casual audience) and whether the buyer's clock (0.9x straight-line running time, so sprint or ride) suits a 500 m map. The casual target means
    reviewing the 25% arrest cost first (GDD Appendix A).
 7. ~~**Living town:**~~ built 2026-11-08 (prototype `traffic.js`, `citizens.js`): 6 jeepneys and tricycles on the ring roads, 12 walkers on the sidewalks (a third stay out at night), bumps and the ₱15 "Hoy! Watch it!" fine. Not yet: the pickleball pair and the dogs on leashes.
@@ -117,10 +117,12 @@ Later, all proposals in the GDD:
 
 The game uses the prototype's behaviour for each of these, marked as a value to tune.
 
-- **Bonus stacking and caps.** Home, regular, streak and event bonuses add together, then night
-  pay multiplies the total. There is no cap.
-- **Failure payout.** A timeout pays nothing, rates the delivery one star and ends the streak. A
-  damaged order loses tip in proportion to its condition.
+- **Bonus stacking and caps** (Gregory, 2026-11-09). The regular, streak and event bonuses add
+  up to at most +15%. The home bonus (+2% a tier, up to +8%) sits on top, then night pay
+  multiplies. Events pay rain +5%, fiesta food +10% and Undas cemetery +15%.
+- **Failure payout** (Gregory kept it, 2026-11-09). A timeout pays nothing, rates the delivery
+  one star and ends the streak. A damaged order loses tip in proportion to its condition. (GDD
+  Appendix A's summary says "partial payment"; this decision replaces that line.)
 - **Distance pay.** ₱0.40 per metre past 60 m from the hub. The GDD's phrase "up to +40%"
   describes the same constant.
 - **Day length.** 20 minutes, the lower end of the Blueprint's provisional 20–25 minutes

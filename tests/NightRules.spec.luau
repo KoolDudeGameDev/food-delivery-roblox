@@ -30,8 +30,11 @@ return {
 	end,
 	aDealGetsBonusesButNoTipOrNightPay = function()
 		local _, _, Config, _, Pay = load()
-		local deal = Pay.deal(200, { homeBonus = 0.06, streak = 5, eventBonus = 0.1 })
-		assert(deal.total == math.floor(200 * (1 + 0.06 + 5 * Config.STREAK_STEP + 0.1) + 0.5), `total {deal.total}`)
+		local deal = Pay.deal(200, { homeBonus = 0.04, streak = 2, eventBonus = 0.05 })
+		assert(deal.total == math.floor(200 * (1 + 0.04 + 2 * Config.STREAK_STEP + 0.05) + 0.5), `total {deal.total}`)
+		-- the streak and the event share the cap; the home sits on top
+		deal = Pay.deal(200, { homeBonus = 0.04, streak = 10, eventBonus = 0.1 })
+		assert(deal.total == math.floor(200 * (1 + 0.04 + Config.BONUS_CAP) + 0.5), `capped {deal.total}`)
 	end,
 	theLoopGoesRoundTheRing = function()
 		local _, Police = load()

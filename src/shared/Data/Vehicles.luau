@@ -26,7 +26,7 @@ local Vehicles: { Vehicle } = {
 	{
 		key = "skateboard",
 		name = "Skateboard",
-		price = 900,
+		price = 700, -- prototype ₱900; cut so the bicycle lands near minute 30 (Gregory 2026-11-09, to tune)
 		speed = 9.5,
 		accel = 6,
 		carry = 1,
@@ -40,7 +40,7 @@ local Vehicles: { Vehicle } = {
 	{
 		key = "bicycle",
 		name = "Bicycle",
-		price = 2500,
+		price = 1300, -- prototype ₱2,500; minute 30 in the economy sim (Gregory 2026-11-09, to tune)
 		speed = 12.5,
 		accel = 5,
 		carry = 1,
