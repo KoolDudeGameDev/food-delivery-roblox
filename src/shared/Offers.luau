@@ -103,4 +103,12 @@ function Offers.problem(carry: number, carried: number, offer: Offer): string?
 	return nil
 end
 
+-- The teleport check on delivery (MVP criterion 3): could anyone have covered this many metres in
+-- this many seconds at this top speed (m/s)? Straight lines are already shorter than the roads,
+-- and the slack and slop cover a fling, a knockback and lag. A teleport fails it until enough
+-- time has passed, so it never pays sooner than riding would (and the tip shrinks meanwhile).
+function Offers.tooFast(metres: number, seconds: number, topSpeed: number): boolean
+	return metres > topSpeed * Config.TRAVEL_SLACK * math.max(0, seconds) + Config.TRAVEL_SLOP
+end
+
 return Offers

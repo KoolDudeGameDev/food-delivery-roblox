@@ -34,6 +34,9 @@ Config.OFFER_LIFE = 30 -- s
 Config.FOOD_CHANCE = 0.6 -- share of offers that are food, where the house and type allow it
 Config.DELIVER_REACH = 2.4 -- m from the doorstep that counts as delivered
 Config.HUB_REACH = 4.5 -- m from the hub board that counts as "at the hub"
+-- The teleport check on delivery (Offers.tooFast): top speed x this, plus this many metres (to tune)
+Config.TRAVEL_SLACK = 1.5
+Config.TRAVEL_SLOP = 10
 
 -- Reasons to come back
 Config.STREAK_STEP = 0.02
