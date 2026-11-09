@@ -43,19 +43,27 @@ return {
 		assert(r.total == 74, `total {r.total}`)
 		assert(r.rating == 5, `rating {r.rating}`)
 	end,
-	deliveryStacksBonusesAdditivelyThenNight = function()
+	deliveryCapsTheSharedBonusesThenAddsHomeThenNight = function()
 		local Pay = load()
 		local r = Pay.delivery({ pay = 57, max = 20 }, {
 			left = 10,
 			fresh = 100,
-			homeBonus = 0.12,
+			homeBonus = 0.08,
 			regular = true,
-			streak = 50, -- capped at +20%
+			streak = 50, -- +20% on its own, more than the cap
+			eventBonus = 0.15,
 			night = true,
 		})
-		-- (57 + 17) x (1 + 0.12 + 0.1 + 0.2) x 1.15 = 120.84 -> 121
-		assert(near(r.bonus, 1.42), `bonus {r.bonus}`)
-		assert(r.total == 121, `total {r.total}`)
+		-- regular, streak and event share the +15% cap; home sits on top, then night:
+		-- (57 + 17) x (1 + 0.08 + 0.15) x 1.15 = 104.673 -> 105
+		assert(near(r.bonus, 1.23), `bonus {r.bonus}`)
+		assert(r.total == 105, `total {r.total}`)
+	end,
+	bonusesUnderTheCapStillAdd = function()
+		local Pay = load()
+		local r = Pay.delivery({ pay = 57, max = 20 }, { left = 10, fresh = 100, homeBonus = 0.02, streak = 3, eventBonus = 0.05 })
+		-- 1 + 0.02 + (0.06 + 0.05)
+		assert(near(r.bonus, 1.13), `bonus {r.bonus}`)
 	end,
 	lateAndWreckedPaysBaseOnlyAndOneStar = function()
 		local Pay = load()

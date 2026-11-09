@@ -21,36 +21,38 @@ These are guesses about how people play, not rules of the game:
 - **Order choice:** the best-paying offers you can carry, taken nearest first.
 - **Left out:** rain, fiesta, Undas and daily-goal rewards.
 
-## Results (2026-11-08)
+## Results (2026-11-09, after Gregory's tuning)
 
-Minutes after joining, as a median (most players fall in the 10%–90% range):
+Gregory's changes (all marked "to tune" in the code):
 
-| Bought | Price | Minute | 10%–90% |
-| --- | --- | --- | --- |
-| Roller blades | ₱300 | 5.7 | 4.7–7.3 |
-| Wooden shack | ₱400 | 10.5 | 9.1–12.4 |
-| Skateboard | ₱900 | 20.3 | 17.2–23.2 |
-| Bungalow | ₱1,500 | 32.8 | 28.3–35.9 |
-| Bicycle | ₱2,500 | 50.6 | 44.3–57.1 |
-| Two-storey house | ₱4,000 | reached by 3% of players in the hour | |
+- **Bonus cap:** the regular, streak and event bonuses together add at most +15%
+  (`Config.BONUS_CAP`). The home bonus sits on top of the cap, then night pay multiplies.
+- **Event pay:** rain +5%, fiesta food +10%, Undas cemetery +15% (were 10%, 25%, 50%).
+- **Home bonus:** +2% a tier, up to +8% for the mansion (was 3% a tier, up to 12%), because it
+  lasts forever. The most a delivery can now earn in bonuses is +23%, then ×1.15 at night.
+- **Bicycle at about minute 30:** the bicycle drops from ₱2,500 to ₱1,300 and the skateboard from
+  ₱900 to ₱700. A cheaper bicycle alone ended up behind the bungalow in the spending queue.
+- **Failure payout:** unchanged. A timeout pays nothing, rates one star and ends the streak.
 
-- **Deliveries:** about 63 in the first hour, roughly one a minute.
-- **Spending order:** buying rides first or homes first makes almost no difference, because at
-  ₱300 the ride is the only thing you can afford either way.
-- **Against the GDD:** the first purchase lands inside GDD §2.3's hypothesis of "a meaningful
-  first purchase within approximately 5–10 minutes".
+Minutes after joining, as a median (most players fall in the 10%–90% range). Run with the Luau
+CLI, whose random numbers differ from Studio's, so expect small differences in Studio:
 
-## Decisions for Gregory
+| Bought | Price | Minute | 10%–90% | Before |
+| --- | --- | --- | --- | --- |
+| Roller blades | ₱300 | 5.6 | 4.6–7.3 | 5.7 |
+| Wooden shack | ₱400 | 10.6 | 9.2–12.5 | 10.5 |
+| Skateboard | ₱700 | 18.1 | 15.6–21.2 | 20.3 |
+| Bicycle | ₱1,300 | 30.0 | 25.1–33.0 | 50.6 |
+| Bungalow | ₱1,500 | 38.2 | 33.5–43.1 | 32.8 |
+| Two-storey house | ₱4,000 | 57 (45% of players reach it in the hour) | | 3% |
 
-These settle the Phase 4 exit test in [Roadmap.md](Roadmap.md):
+- **Deliveries:** about 67 in the first hour (was 63), because the faster bicycle comes sooner.
+- **Spending order:** buying rides first or homes first still makes almost no difference.
+- **Against the GDD:** the first purchase still lands inside GDD §2.3's "within approximately
+  5–10 minutes", and the bicycle now falls inside the 20–40 minute target session (§1.4).
 
-1. **Pacing targets:**
-   - the minute by which a new player should buy their first ride (now about 6);
-   - the minute for their first home upgrade (now about 10);
-   - whether the bicycle at about minute 51 is too far off for a first session.
-2. **Bonus cap:** the home, regular, streak and event bonuses add up with no cap, then night pay
-   multiplies the total (GDD §16).
-3. **Failure payout:** a timed-out order pays nothing, rates one star and ends your streak. Keep
-   that, or pay something?
+## Still open
 
-Once these are set, the bulk playtest checks the real minutes against them.
+- **Pacing targets for the Phase 4 exit test:** first ride by about minute 6, first home upgrade
+  by about minute 10, and the bicycle by about minute 30 (Gregory, 2026-11-09). The bulk
+  playtest checks the real minutes against these with a stopwatch.

@@ -40,13 +40,17 @@ Config.STREAK_STEP = 0.02
 Config.STREAK_MAX = 0.2
 Config.REGULAR_VISITS = 3
 Config.REGULAR_BONUS = 0.1
+-- The regular, streak and event bonuses together never add more than this; the home bonus sits
+-- on top (Gregory 2026-11-09, to tune)
+Config.BONUS_CAP = 0.15
 
 -- The day and world events
 Config.DAY_LENGTH = 20 * 60 -- s per full day; the Blueprint's provisional 20-25 min (§11.1), to tune
 Config.START_TIME = 8.6 -- the clock when a server starts (the prototype starts at 0.36 of a day)
-Config.RAIN_PAY = 0.1
-Config.FIESTA_PAY = 0.25
-Config.UNDAS_PAY = 0.5
+-- Event pay, cut from the prototype's 10% / 25% / 50% to fit the bonus cap (Gregory 2026-11-09, to tune)
+Config.RAIN_PAY = 0.05
+Config.FIESTA_PAY = 0.1
+Config.UNDAS_PAY = 0.15
 -- How often events come and how long they last, in seconds { min, max } (prototype values)
 Config.RAIN_EVERY, Config.RAIN_LASTS = { 150, 300 }, { 50, 80 }
 Config.BROWNOUT_EVERY, Config.BROWNOUT_LASTS = { 60, 140 }, { 20, 35 } -- only at night
